@@ -1,0 +1,8 @@
+# This directory is intended for custom UI components that might be used
+# in the Streamlit application or a React frontend.
+# Examples:
+# - Reusable Streamlit components (e.g., custom artifact card display).
+# - If using React, this would hold JavaScript/TypeScript component files (.jsx, .tsx).
+#
+# For a pure Streamlit app with simple structure, this might remain empty or
+# contain Python files defining functions that render complex Streamlit elements.
