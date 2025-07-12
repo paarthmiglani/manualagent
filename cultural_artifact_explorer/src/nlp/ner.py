@@ -1,4 +1,5 @@
 # src/nlp/ner.py
+
 # Implements the NERTagger class for inference using the BiLSTM-CRF model.
 
 import yaml
@@ -9,11 +10,11 @@ import os
 # Import model and utilities from our source files
 from .model_definition_ner import BiLSTM_CRF
 from .utils import preprocess_text_for_nlp # Optional preprocessing
-
 class NERTagger:
     def __init__(self, config_path):
         """
         Initializes the NERTagger for inference.
+
         Args:
             config_path (str): Path to the main NLP config file (e.g., configs/nlp.yaml).
         """
