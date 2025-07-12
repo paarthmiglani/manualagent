@@ -1,5 +1,5 @@
 # Core Python and ML Libraries
-numpy
+numpy<2.0
 opencv-python-headless # For image processing without GUI dependencies
 scikit-learn # For metrics and some utilities
 # Pillow # For image manipulation, often a dependency of vision libs
