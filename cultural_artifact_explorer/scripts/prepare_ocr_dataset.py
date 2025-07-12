@@ -128,7 +128,6 @@ def update_ocr_config(config_path, dataset_path, annotations_path, char_list_pat
 
     # Ensure the directory exists before writing the file
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
-
     # Write the updated config back to the file
     with open(config_path, 'w') as f:
         yaml.dump(config_data, f, sort_keys=False)
