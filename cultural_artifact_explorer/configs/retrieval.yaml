@@ -1,0 +1,118 @@
+# Configuration for Multimodal Retrieval Module
+
+# --- Embedding Generation ---
+embedding_generator:
+  # Type of joint image-text embedding model (e.g., custom CLIP/BLIP-like)
+  model_type: "CustomCLIP"
+
+  # Path to the trained joint embedding model or separate encoders
+  # If a joint model (like CLIP):
+  # Example: "models/retrieval/clip_custom_trained.pth"
+  joint_model_path: null
+
+  # If separate image and text encoders that project to a shared space:
+  image_encoder_path: null # "models/retrieval/image_encoder_final.pth"
+  text_encoder_path: null  # "models/retrieval/text_encoder_final.pth"
+
+  # Path to the tokenizer configuration (if text model requires it)
+  # Example: "models/retrieval/text_tokenizer_config/"
+  tokenizer_path: null
+
+  # Dimensionality of the output embeddings
+  embedding_dim: 512
+
+  # Image preprocessing settings for the image encoder
+  image_preprocessing:
+    target_size: [224, 224] # [height, width]
+    mean: [0.485, 0.456, 0.406] # Example: ImageNet mean
+    std: [0.229, 0.224, 0.225]  # Example: ImageNet std
+    interpolation: "bilinear"
+
+  # Text preprocessing settings for the text encoder
+  text_preprocessing:
+    max_length: 77 # Max token length (e.g., common for CLIP)
+    truncation: true
+    padding: "max_length"
+
+  inference_device: "cpu" # "cpu", "cuda:0"
+
+# --- Vector Indexing and Search ---
+vector_indexer:
+  # Type of index to use: "faiss", "annoy", "numpy" (for basic cosine similarity)
+  index_type: "faiss"
+
+  # Base path for storing/loading index files. Specific names might be appended.
+  # Example: "models/retrieval/artifact_index"
+  # This might lead to "artifact_index.faiss" and "artifact_index_metadata.pkl"
+  index_base_path: "models/retrieval/artifact_index"
+
+  # Index for image embeddings (searched with text queries to find images)
+  image_index_name: "image_embeddings" # e.g., results in artifact_index_image_embeddings.faiss
+
+  # Index for text embeddings (searched with image queries to find texts)
+  text_index_name: "text_embeddings"   # e.g., results in artifact_index_text_embeddings.faiss
+
+  # Parameters specific to FAISS
+  faiss:
+    # Index string for faiss.index_factory, e.g., "Flat", "IVF128,Flat", "HNSW32"
+    # "IDMap2,Flat" allows custom IDs and exact search with L2.
+    index_string: "IDMap2,Flat"
+    nprobe: 10 # Number of cells to visit for IVF indexes during search
+    use_gpu: false # Whether to use GPU-accelerated FAISS (if available)
+
+  # Parameters specific to Annoy
+  annoy:
+    n_trees: 50 # Number of trees for building Annoy index
+    metric: "angular" # "angular", "euclidean", "manhattan", "hamming", "dot"
+    search_k_factor: -1 # Factor for search_k: n_trees * search_k_factor if search_k=-1
+
+  # Whether to normalize embeddings before indexing/searching (recommended for cosine similarity)
+  normalize_embeddings: true
+
+# --- Retrieval Process ---
+retriever:
+  default_top_k: 10 # Default number of results to retrieve
+
+  # For Image-to-Text retrieval:
+  # Search the 'text_index_name' with the image embedding
+  image_to_text:
+    # Any specific parameters for this direction
+    pass
+
+  # For Text-to-Image retrieval:
+  # Search the 'image_index_name' with the text embedding
+  text_to_image:
+    # Any specific parameters for this direction
+    pass
+
+# --- Training Configuration for Embedding Models (if applicable here) ---
+# This might also live in a separate training_retrieval.yaml
+training:
+  dataset_path: "data/processed/image_text_pairs/" # Path to image-text pair data
+  annotations_file: "data/annotations/image_text_captions.json"
+
+  # Model training parameters
+  batch_size: 64
+  learning_rate: 0.0001
+  epochs: 30
+  optimizer: "AdamW"
+  weight_decay: 0.01
+  lr_scheduler: "cosine" # "step", "cosine", "plateau"
+  warmup_steps: 1000
+
+  # Loss function for contrastive learning (e.g., InfoNCE)
+  loss_type: "InfoNCE"
+  temperature: 0.07 # Temperature parameter for InfoNCE loss
+
+  # Output directory for trained models and logs
+  output_dir: "models/retrieval/"
+
+  # Validation settings
+  validation_split: 0.1
+  evaluate_every_n_epochs: 1
+
+  # Distributed training settings (if any)
+  distributed:
+    enable: false
+    backend: "nccl" # "nccl", "gloo"
+    num_gpus: 1

@@ -1,0 +1,10 @@
+# This directory is for storing datasets after they have been preprocessed
+# and are ready for model training or evaluation.
+# Examples:
+# - Images resized, normalized, or augmented for OCR/image embedding models.
+# - Text data cleaned, tokenized, and formatted for NLP models.
+# - Image-text pairs prepared for multimodal model training.
+# - TFRecords, PyTorch .pt files, or other serialized data formats.
+#
+# Like the 'raw' directory, large processed files may be better stored
+# externally, with this directory containing metadata, samples, or generation scripts.

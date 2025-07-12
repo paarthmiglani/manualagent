@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cultural_artifact_explorer"
+version = "0.1.0"
+authors = [
+  { name="AI Agent Jules", email="jules@example.com" },
+]
+description = "A multimodal retrieval system for exploring cultural artifacts."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License", # Update if different
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Text Processing :: Linguistic",
+]
+dependencies = [
+    "numpy",
+    "opencv-python-headless",
+    "scikit-learn",
+    # "Pillow",
+    # "tokenizers",
+    # "transformers",
+    # "tensorflow",
+    # "torch",
+    # "faiss-cpu", # or "faiss-gpu"
+    # "annoy",
+    "streamlit",
+    "PyYAML",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "flake8",
+    "black",
+    "isort",
+    "mypy", # Optional for static typing
+]
+# gpu = [
+#     "tensorflow-gpu", # If using TensorFlow with GPU
+#     "torch[cuda]",    # If using PyTorch with CUDA
+#     "faiss-gpu",
+# ]
+
+
+[project.urls]
+"Homepage" = "https://github.com/example/cultural_artifact_explorer" # Replace with actual URL
+"Bug Tracker" = "https://github.com/example/cultural_artifact_explorer/issues" # Replace
+
+[tool.setuptools.packages.find]
+where = ["src"]  # Tells setuptools to find packages in src directory
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+# Example for mypy if used
+# [tool.mypy]
+# python_version = "3.8"
+# warn_return_any = true
+# warn_unused_configs = true
+# packages = ["src.cultural_artifact_explorer"]

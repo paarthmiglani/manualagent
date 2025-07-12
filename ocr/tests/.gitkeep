@@ -1,0 +1,13 @@
+# This file is intentionally left blank.
+# It's a common convention to use .gitkeep files to ensure that
+# otherwise empty directories are tracked by Git.
+# This directory will contain unit and integration tests for the project.
+# (Currently TBD as per project description)
+#
+# Examples:
+# - Unit tests for individual functions/modules (e.g., OCR accuracy on sample images)
+# - Integration tests for pipelines (e.g., end-to-end OCR -> NLP -> Retrieval flow)
+#
+# A good testing suite is crucial for maintaining code quality and ensuring
+# the reliability of the models and pipelines. Frameworks like PyTest or unittest
+# can be used.

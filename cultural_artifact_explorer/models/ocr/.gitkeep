@@ -1,0 +1,11 @@
+# This directory is intended for storing trained OCR model checkpoints,
+# weights, and any associated files (e.g., model architecture definitions if not in code).
+# Examples:
+# - OCR text detection model: e.g., craft_mlt_25k.pth, east_model.pb
+# - OCR text recognition model: e.g., crnn_devanagari_best.pth, transformer_ocr_tamil.ckpt
+# - Vocabulary or character map files specific to a trained model instance if not in data/annotations.
+#
+# Large model files should ideally be managed using Git LFS or stored in a dedicated
+# model repository/cloud storage, with this directory perhaps containing download scripts or links.
+# Configuration files for these models should be in the `configs/` directory.
+# Training logs might also be stored here or in a separate `logs/` directory.
