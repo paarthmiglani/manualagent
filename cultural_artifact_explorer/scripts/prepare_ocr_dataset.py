@@ -116,16 +116,16 @@ def update_ocr_config(config_path, dataset_path, annotations_path, char_list_pat
     if 'model' not in config_data: config_data['model'] = {}
     if 'training' not in config_data: config_data['training'] = {}
 
-    # Get relative paths for portability
-    # Assumes script is run from project root, so paths should be relative from there.
-    rel_dataset_path = os.path.relpath(dataset_path, start=os.getcwd())
-    rel_annotations_path = os.path.relpath(annotations_path, start=os.getcwd())
-    rel_char_list_path = os.path.relpath(char_list_path, start=os.getcwd())
+    # Use absolute paths to prevent issues with different working directories
+    abs_dataset_path = os.path.abspath(dataset_path)
+    abs_annotations_path = os.path.abspath(annotations_path)
+    abs_char_list_path = os.path.abspath(char_list_path)
 
     # Update the paths
-    config_data['training']['dataset_path'] = rel_dataset_path
-    config_data['training']['annotations_file'] = rel_annotations_path
-    config_data['model']['char_list_path'] = rel_char_list_path
+    config_data['training']['dataset_path'] = abs_dataset_path
+    config_data['training']['annotations_file'] = abs_annotations_path
+    config_data['model']['char_list_path'] = abs_char_list_path
+
     # Ensure the directory exists before writing the file
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
     # Write the updated config back to the file
