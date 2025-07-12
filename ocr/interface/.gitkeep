@@ -1,0 +1,11 @@
+# This file is intentionally left blank.
+# It's a common convention to use .gitkeep files to ensure that
+# otherwise empty directories are tracked by Git.
+# This directory will contain the frontend interface for the application.
+# Examples:
+# - A Streamlit app for rapid prototyping
+# - A React-based web application for a more polished user experience
+#
+# The interface should allow users to:
+# - Upload an image to trigger the OCR, NLP, and retrieval pipeline
+# - Enter a text query to search for semantically related artifact images
