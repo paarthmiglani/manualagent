@@ -1,0 +1,124 @@
+# Configuration for NLP Module
+
+# --- Translation ---
+translation:
+  default_source_language: "auto" # or specific like "hi" (Hindi)
+  default_target_language: "en" # English
+
+  models: # Configuration for different language pairs
+    # Example: Hindi to English
+    hi_en:
+      model_type: "Seq2SeqTransformer" # Custom Transformer, MarianMT (if fine-tuning)
+      # Path to the trained translation model
+      # Example: "models/nlp/translation_hi_en_transformer.pth"
+      model_path: null
+      # Path to the tokenizer or vocabulary files (source and target)
+      # Example: "models/nlp/tokenizer_hi_en/"
+      tokenizer_path: null
+      # Model specific parameters
+      num_encoder_layers: 6
+      num_decoder_layers: 6
+      embedding_dim: 512
+      num_heads: 8
+      feedforward_dim: 2048
+      dropout: 0.1
+      # Training parameters for this model (if applicable here)
+      train_config:
+        dataset_path: "data/processed/translation_hi_en/"
+        batch_size: 32
+        learning_rate: 0.0005
+        epochs: 20
+        output_dir: "models/nlp/translation_hi_en/"
+
+    # Example: Tamil to English
+    ta_en:
+      model_type: "Seq2SeqTransformer"
+      model_path: null # "models/nlp/translation_ta_en_transformer.pth"
+      tokenizer_path: null # "models/nlp/tokenizer_ta_en/"
+      # ... other model params ...
+      train_config:
+        dataset_path: "data/processed/translation_ta_en/"
+        # ... other training params ...
+        output_dir: "models/nlp/translation_ta_en/"
+
+  inference:
+    device: "cpu" # "cpu", "cuda:0"
+    beam_size: 4
+    max_length_multiplier: 1.5 # Max output length relative to input length
+
+# --- Summarization ---
+summarization:
+  model_type: "TransformerEncoderDecoder" # Custom, BART fine-tuned, etc.
+  # Path to the trained summarization model
+  # Example: "models/nlp/summarizer_transformer.pth"
+  model_path: null
+  # Path to the tokenizer
+  # Example: "models/nlp/tokenizer_summarizer/"
+  tokenizer_path: null
+
+  # Model specific parameters
+  num_layers: 6 # If custom encoder-decoder
+  embedding_dim: 768
+  num_heads: 12
+  # ... other params ...
+
+  inference:
+    device: "cpu"
+    min_length: 30
+    max_length: 150 # Max length of the summary
+    length_penalty: 2.0
+    num_beams: 4
+    early_stopping: true
+
+  training: # Training configuration for summarizer
+    dataset_path: "data/processed/summarization_data/"
+    batch_size: 16
+    learning_rate: 0.0001
+    epochs: 15
+    output_dir: "models/nlp/summarizer/"
+
+# --- Named Entity Recognition (NER) ---
+ner:
+  model_type: "BiLSTM_CRF" # TransformerForTokenClassification, etc.
+  # Path to the trained NER model
+  # Example: "models/nlp/ner_bilstm_crf_cultural.pth"
+  model_path: null
+  # Path to the tokenizer or word/char embeddings if applicable
+  # Example: "models/nlp/tokenizer_ner/" or "models/nlp/word_embeddings_ner.vec"
+  tokenizer_path: null
+  # Path to the label_map.json (mapping tags like 'B-MONUMENT' to integer IDs)
+  # Example: "data/annotations/ner_label_map.json"
+  label_map_path: null
+
+  # Model specific parameters
+  embedding_dim: 300 # If using custom embeddings
+  hidden_dim: 256
+  # ... other params ...
+
+  inference:
+    device: "cpu"
+    # Strategy for handling subword tokens if a transformer tokenizer is used
+    subword_aggregation_strategy: "first" # "first", "average", "max"
+
+  training: # Training configuration for NER
+    dataset_path: "data/processed/ner_training_data/" # Path to CoNLL style files or similar
+    annotations_format: "conll" # "json", "iob", etc.
+    batch_size: 32
+    learning_rate: 0.001
+    epochs: 50
+    output_dir: "models/nlp/ner/"
+    # List of entity types the model is trained to recognize
+    entity_types:
+      - "MONUMENT"
+      - "DYNASTY"
+      - "LOCATION"
+      - "DATE"
+      - "ARTIFACT"
+      - "PERSON"
+      - "ORGANIZATION" # if relevant
+
+# General NLP utilities settings
+utils:
+  default_tokenizer: "custom_word_tokenizer" # "spacy", "nltk", "hf_autotokenizer"
+  language_detection_model_path: null # If using a custom lang detect model
+  sentence_segmenter: "nltk" # "spacy", "nltk", "custom"

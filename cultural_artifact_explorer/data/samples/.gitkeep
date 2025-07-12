@@ -1,0 +1,12 @@
+# This directory should contain a small, representative sample of data
+# that can be used for:
+# - Quick testing of scripts and pipelines.
+# - Demonstrations or examples.
+# - Unit tests requiring data inputs.
+#
+# Examples:
+# - A few sample artifact images (.jpg, .png).
+# - Short text excerpts in various Indic scripts.
+# - Sample annotation files corresponding to the images/texts.
+#
+# These files should be small enough to be committed to Git.
