@@ -10,7 +10,7 @@ model:
   weights_path: null # To be filled after training
 
   # Architecture specific parameters
-  input_height: 64 # Height of the input image to the model
+  input_height: 32 # Height of the input image to the model
   input_channels: 1 # 1 for grayscale, 3 for color
   rnn_hidden_size: 256
   num_rnn_layers: 2
@@ -20,7 +20,7 @@ model:
 
 # Preprocessing settings for inference
 preprocessing:
-  image_height: 64   # Target height for resizing before feeding to model
+  image_height: 32   # Target height for resizing before feeding to model
   grayscale: true
   binarization_threshold: null # null for no fixed threshold, or value like 128, or "otsu"
   invert_colors: false # If input images are white text on black bg
