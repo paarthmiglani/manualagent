@@ -126,10 +126,8 @@ def update_ocr_config(config_path, dataset_path, annotations_path, char_list_pat
     config_data['training']['dataset_path'] = rel_dataset_path
     config_data['training']['annotations_file'] = rel_annotations_path
     config_data['model']['char_list_path'] = rel_char_list_path
-
     # Ensure the directory exists before writing the file
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
-
     # Write the updated config back to the file
     with open(config_path, 'w') as f:
         yaml.dump(config_data, f, sort_keys=False)
