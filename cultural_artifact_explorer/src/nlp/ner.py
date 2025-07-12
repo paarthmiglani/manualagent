@@ -1,4 +1,5 @@
 # src/nlp/ner.py
+
 # Implements the NERTagger class for inference using the BiLSTM-CRF model.
 
 import yaml
@@ -10,10 +11,13 @@ import os
 from .model_definition_ner import BiLSTM_CRF
 from .utils import preprocess_text_for_nlp # Optional preprocessing
 
+
 class NERTagger:
     def __init__(self, config_path):
         """
+
         Initializes the NERTagger for inference.
+
         Args:
             config_path (str): Path to the main NLP config file (e.g., configs/nlp.yaml).
         """
@@ -25,6 +29,8 @@ class NERTagger:
             raise ValueError("NER configuration not found in NLP config.")
 
         self.model_path = self.ner_config.get('model_path')
+
+        
         self.vocab_map_path = self.ner_config.get('vocab_map_path') # Path to word_to_ix.json
         self.tag_map_path = self.ner_config.get('tag_map_path') # Path to tag_to_ix.json
 
@@ -193,6 +199,8 @@ class NERTagger:
 
 def main():
     parser = argparse.ArgumentParser(description="Extract Named Entities from text.")
+
+    
     parser.add_argument('--text', type=str, required=True, help="Text to process for NER.")
     parser.add_argument('--config', type=str, default="configs/nlp.yaml",
                         help="Path to the NLP configuration YAML file.")
