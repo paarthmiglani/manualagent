@@ -1,15 +1,23 @@
 # src/nlp/ner.py
-# Placeholder for Named Entity Recognition model inference
+
+# Implements the NERTagger class for inference using the BiLSTM-CRF model.
 
 import yaml
 import json
-# import torch # or tensorflow
-# from transformers import AutoTokenizer, AutoModelForTokenClassification # If using Hugging Face models
+import torch
+import os
+
+# Import model and utilities from our source files
+from .model_definition_ner import BiLSTM_CRF
+from .utils import preprocess_text_for_nlp # Optional preprocessing
+
 
 class NERTagger:
     def __init__(self, config_path):
         """
-        Initializes the NERTagger.
+
+        Initializes the NERTagger for inference.
+
         Args:
             config_path (str): Path to the main NLP config file (e.g., configs/nlp.yaml).
         """
@@ -21,207 +29,253 @@ class NERTagger:
             raise ValueError("NER configuration not found in NLP config.")
 
         self.model_path = self.ner_config.get('model_path')
-        self.tokenizer_path = self.ner_config.get('tokenizer_path', self.model_path) # Often same for HF
-        self.label_map_path = self.ner_config.get('label_map_path')
+
+        
+        self.vocab_map_path = self.ner_config.get('vocab_map_path') # Path to word_to_ix.json
+        self.tag_map_path = self.ner_config.get('tag_map_path') # Path to tag_to_ix.json
 
         self.model = None
-        self.tokenizer = None
-        self.label_map = None # List of tags: ['O', 'B-MONUMENT', 'I-MONUMENT', ...]
-        self.id2label = None # Maps integer ID to string label
-        self.label2id = None # Maps string label to integer ID
+        self.word_to_ix = None
+        self.ix_to_tag = None
         self.device = None
 
-        # self._setup_device()
-        # self._load_label_map()
-        # self._load_model() # Depends on label_map for num_labels if using HF
+        self._setup_device()
+        self._load_mappings()
+        self._load_model()
         print(f"NERTagger initialized. Model path: {self.model_path or 'Not set'}")
 
     def _setup_device(self):
-        # device_str = self.ner_config.get('inference', {}).get('device', 'cpu')
-        # self.device = torch.device(device_str)
-        # print(f"Using device: {self.device}")
-        pass
+        """Sets up the device for inference (CPU or GPU)."""
+        device_str = self.ner_config.get('inference', {}).get('device', 'cpu')
+        self.device = torch.device(device_str)
+        print(f"Using device: {self.device}")
 
-    def _load_label_map(self):
-        """Loads the label map (maps NER tags to IDs and vice-versa)."""
-        print("Loading NER label map (placeholder)...")
-        # if not self.label_map_path:
-        #     print("Warning: label_map_path not specified. Using default or expecting it from model config.")
-        #     # Fallback to entity_types from config if label_map_path is missing
-        #     entity_types = self.ner_config.get('entity_types', ['MONUMENT', 'LOCATION', 'DATE'])
-        #     self.label_map = ['O'] + [f'{prefix}-{tag}' for tag in entity_types for prefix in ('B', 'I')]
-        # else:
-        #     try:
-        #         with open(self.label_map_path, 'r') as f:
-        #             # Assuming label_map.json stores a list of tags or a dict for id2label
-        #             loaded_map = json.load(f)
-        #             if isinstance(loaded_map, list): # List of tags
-        #                 self.label_map = loaded_map
-        #             elif isinstance(loaded_map, dict) and "id2label" in loaded_map: # HF style model config
-        #                 self.id2label = loaded_map["id2label"]
-        #                 self.label2id = loaded_map["label2id"]
-        #                 self.label_map = [self.id2label[str(i)] for i in range(len(self.id2label))] # Construct list
-        #             else: # Try to infer from a simple list of tags in a .txt file
-        #                  self.label_map = [line.strip() for line in open(self.label_map_path, 'r') if line.strip()]
-        #     except Exception as e:
-        #         print(f"Error loading label map from {self.label_map_path}: {e}. Using default.")
-        #         entity_types = self.ner_config.get('entity_types', ['MONUMENT', 'LOCATION', 'DATE'])
-        #         self.label_map = ['O'] + [f'{prefix}-{tag}' for tag in entity_types for prefix in ('B', 'I')]
+    def _load_mappings(self):
+        """Loads word and tag mappings from files."""
+        print("Loading NER vocabulary and tag mappings...")
+        if not self.vocab_map_path or not self.tag_map_path:
+            raise ValueError("Paths to 'vocab_map_path' and 'tag_map_path' must be specified in ner config.")
 
-        # For placeholder:
-        self.label_map = self.ner_config.get('entity_types', ['O', 'B-MONUMENT', 'I-MONUMENT', 'B-LOCATION', 'I-LOCATION', 'B-DATE', 'I-DATE'])
-        if 'O' not in self.label_map[0]: # Ensure 'O' is usually first if it's just entity types
-            self.label_map = ['O'] + [f'{p}-{tag}' for tag in self.label_map if tag != 'O' for p in ('B','I')]
+        try:
+            with open(self.vocab_map_path, 'r', encoding='utf-8') as f:
+                self.word_to_ix = json.load(f)
+            with open(self.tag_map_path, 'r', encoding='utf-8') as f:
+                self.tag_to_ix = json.load(f)
 
-
-        if not self.id2label: self.id2label = {i: label for i, label in enumerate(self.label_map)}
-        if not self.label2id: self.label2id = {label: i for i, label in enumerate(self.label_map)}
-        print(f"NER label map loaded/generated. Num labels: {len(self.label_map)} (placeholder). Example: {self.label_map[:5]}")
-
+            # Create inverse mapping for tags to convert indices back to labels
+            self.ix_to_tag = {i: tag for tag, i in self.tag_to_ix.items()}
+            print(f"  Loaded vocabulary with {len(self.word_to_ix)} words.")
+            print(f"  Loaded tag map with {len(self.tag_to_ix)} tags.")
+        except Exception as e:
+            print(f"Error loading mapping files: {e}")
+            raise
 
     def _load_model(self):
-        """Loads the NER model and tokenizer."""
-        print(f"Loading NER model and tokenizer (placeholder)...")
-        # if not self.model_path:
-        #     print("Warning: model_path not specified for NER. Inference will be placeholder only.")
-        #     return
+        """Loads the trained BiLSTM-CRF model."""
+        print(f"Loading NER model from: {self.model_path}...")
+        if not self.model_path or not os.path.exists(self.model_path):
+            raise FileNotFoundError(f"NER model not found at path: {self.model_path}")
 
-        # model_type = self.ner_config.get('model_type', "TransformerForTokenClassification")
-        # print(f"Model type: {model_type}, Path: {self.model_path}")
+        # Model parameters must match the saved model
+        model_params = self.ner_config.get('model_params', {})
+        embedding_dim = model_params.get('embedding_dim', 100) # Must match trained model
+        hidden_dim = model_params.get('hidden_dim', 256)     # Must match trained model
 
-        # num_labels = len(self.label_map)
-        # self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_path)
-        # self.model = AutoModelForTokenClassification.from_pretrained(self.model_path, num_labels=num_labels, id2label=self.id2label, label2id=self.label2id).to(self.device)
-        # self.model.eval()
+        self.model = BiLSTM_CRF(
+            vocab_size=len(self.word_to_ix),
+            tag_to_ix=self.tag_to_ix,
+            embedding_dim=embedding_dim,
+            hidden_dim=hidden_dim
+        ).to(self.device)
 
-        # For custom models (e.g., BiLSTM-CRF):
-        # self.tokenizer = YourCustomTokenizerOrWordEmbeddings(load_path=self.tokenizer_path)
-        # self.model = YourCustomNERModel(num_tags=len(self.label_map), **self.ner_config.get('arch_params', {}))
-        # self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
-        # self.model.to(self.device)
-        # self.model.eval()
+        try:
+            self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
+        except Exception as e:
+            print(f"Error loading model state_dict: {e}")
+            print("Ensure the model parameters in the config match the architecture of the saved model.")
+            raise
 
-        self.model = "dummy_ner_model"
-        self.tokenizer = "dummy_ner_tokenizer" # Could be word-based or subword
-        print(f"NER model and tokenizer loaded (placeholder).")
+        self.model.eval() # Set model to evaluation mode
+        print("NER model loaded successfully.")
 
+    def _preprocess_sentence(self, sentence_text):
+        """Converts a raw sentence string to a tensor of word indices."""
+        # Optional: Apply general text preprocessing like normalization
+        # sentence_text = preprocess_text_for_nlp(sentence_text)
+
+        # Tokenize (simple split for now; could be more advanced)
+        words = sentence_text.split()
+
+        # Convert words to indices
+        unknown_ix = self.word_to_ix.get('<UNK>', 0)
+        indices = [self.word_to_ix.get(w, unknown_ix) for w in words]
+
+        return torch.tensor(indices, dtype=torch.long).to(self.device), words
 
     def extract_entities(self, text):
         """
-        Extracts named entities from the given text.
+        Extracts named entities from a given text sentence.
         Returns:
-            list: A list of dictionaries, e.g.,
-                  [{'text': 'Taj Mahal', 'label': 'MONUMENT', 'start_char': 5, 'end_char': 14, 'score': 0.95}, ...]
+            list: A list of dictionaries for each found entity, e.g.,
+                  [{'text': 'Taj Mahal', 'label': 'MONUMENT', 'start_char': 4, 'end_char': 13}]
         """
-        if self.model is None or self.tokenizer is None or self.label_map is None:
-            # Attempt to load if critical components are missing
-            if not self.label_map: self._load_label_map() # Placeholder call
-            if not self.model : self._load_model() # Placeholder call
+        if not self.model:
+            raise RuntimeError("Model is not loaded. Cannot perform inference.")
 
-            if self.model is None or self.tokenizer is None or self.label_map is None:
-                print("NER model/tokenizer/label_map not loaded. Returning placeholder entities.")
-                return self._placeholder_entities(text)
+        print(f"Extracting entities from text: \"{text[:50]}...\"")
 
+        # Prepare sentence for the model
+        sentence_tensor, original_tokens = self._preprocess_sentence(text)
 
-        print(f"Extracting entities from text (first 50 chars): \"{text[:50]}...\" (placeholder)...")
+        if sentence_tensor.nelement() == 0:
+            return [] # Return empty list for empty input
 
-        # Placeholder for actual NER logic:
-        # 1. Tokenize text (words or subwords)
-        #    inputs = self.tokenizer(text, return_tensors="pt", truncation=True, return_offsets_mapping=True)
-        #    tokens = self.tokenizer.convert_ids_to_tokens(inputs["input_ids"].squeeze().tolist())
-        #    offsets = inputs.pop("offset_mapping").squeeze().tolist()
-        #    inputs = inputs.to(self.device)
+        # Perform inference
+        with torch.no_grad():
+            score, tag_indices = self.model(sentence_tensor)
 
-        # 2. Get model predictions (logits for each token, for each class)
-        #    with torch.no_grad():
-        #        logits = self.model(**inputs).logits
-        #    predictions_indices = torch.argmax(logits, dim=2).squeeze().tolist()
-        #    scores = torch.softmax(logits, dim=2).squeeze() # Get probabilities
+        # Convert tag indices back to string tags
+        predicted_tags = [self.ix_to_tag[ix] for ix in tag_indices]
 
-        # 3. Aggregate token-level predictions into span-level entities (handle BIO/BILOU scheme)
-        #    This is the complex part, especially with subword tokenizers.
-        #    entities = []
-        #    current_entity_tokens = []
-        #    current_entity_label = None
-        #    current_entity_start_offset = -1
-        #    current_entity_scores = []
+        # Aggregate tags into entities (handle B- and I- prefixes)
+        return self._aggregate_tags_to_entities(original_tokens, predicted_tags, text)
 
-        #    for i, token_pred_idx in enumerate(predictions_indices):
-        #        token_label = self.id2label[token_pred_idx]
-        #        token_score = scores[i, token_pred_idx].item()
-        #        # Logic to handle B-, I-, O tags and merge subwords based on offsets...
-        #        # ...
+    def _aggregate_tags_to_entities(self, tokens, tags, original_text):
+        """Helper function to convert token-level BIO tags to character-level entity spans."""
+        entities = []
+        current_entity_tokens = []
+        current_entity_label = None
 
-        # For placeholder, use the simple keyword-based logic
-        entities = self._placeholder_entities(text)
+        for i, (token, tag) in enumerate(zip(tokens, tags)):
+            tag_prefix = tag.split('-')[0] if '-' in tag else 'O'
+            tag_label = tag.split('-')[-1] if '-' in tag else None
 
-        print(f"Extracted entities: {entities} (placeholder)")
+            if tag_prefix == 'B':
+                # If we were in the middle of another entity, save it first
+                if current_entity_tokens:
+                    entities.append(self._create_entity_dict(current_entity_tokens, current_entity_label, original_text))
+
+                # Start a new entity
+                current_entity_tokens = [token]
+                current_entity_label = tag_label
+
+            elif tag_prefix == 'I' and current_entity_label == tag_label:
+                # Continue the current entity
+                current_entity_tokens.append(token)
+
+            else: # O-tag or a tag mismatch
+                # End of any current entity
+                if current_entity_tokens:
+                    entities.append(self._create_entity_dict(current_entity_tokens, current_entity_label, original_text))
+
+                # Reset
+                current_entity_tokens = []
+                current_entity_label = None
+
+        # Add the last entity if the sentence ends with one
+        if current_entity_tokens:
+            entities.append(self._create_entity_dict(current_entity_tokens, current_entity_label, original_text))
+
         return entities
 
-    def _placeholder_entities(self, text):
-        """Generates some plausible placeholder entities based on keywords."""
-        found_entities = []
-        # Ensure label_map is initialized for placeholder
-        if not self.label_map: self.label_map = ['O', 'B-MONUMENT', 'I-MONUMENT', 'B-LOCATION', 'I-LOCATION', 'B-DATE', 'I-DATE', 'B-DYNASTY', 'I-DYNASTY']
+    def _create_entity_dict(self, tokens, label, original_text):
+        """Creates the final dictionary for a found entity, including character offsets."""
+        entity_text = " ".join(tokens)
+        # Find start and end character indices. This is a simple search and can be brittle.
+        # A more robust solution would use token offsets from a proper tokenizer.
+        try:
+            start_char = original_text.index(entity_text)
+            end_char = start_char + len(entity_text)
+        except ValueError:
+            start_char, end_char = -1, -1 # Mark as not found if simple search fails
 
-        def get_label(base_tag):
-            for prefix in ['B-', 'I-']:
-                if f"{prefix}{base_tag}" in self.label_map: return base_tag # Return base tag for simplicity
-            return "UNKNOWN"
-
-        if "Taj Mahal" in text:
-            start = text.find("Taj Mahal")
-            found_entities.append({'text': 'Taj Mahal', 'label': get_label('MONUMENT'), 'start_char': start, 'end_char': start + len("Taj Mahal"), 'score': 0.98})
-        if "1632 AD" in text:
-            start = text.find("1632 AD")
-            found_entities.append({'text': '1632 AD', 'label': get_label('DATE'), 'start_char': start, 'end_char': start + len("1632 AD"), 'score': 0.92})
-        if "Mughal" in text:
-            start = text.find("Mughal")
-            found_entities.append({'text': 'Mughal', 'label': get_label('DYNASTY'), 'start_char': start, 'end_char': start + len("Mughal"), 'score': 0.90})
-        if "Agra" in text:
-            start = text.find("Agra")
-            found_entities.append({'text': 'Agra', 'label': get_label('LOCATION'), 'start_char': start, 'end_char': start + len("Agra"), 'score': 0.96})
-
-        if not found_entities and len(text) > 5: # Add a generic one if nothing specific found
-             first_word = text.split()[0]
-             found_entities.append({'text': first_word, 'label': 'ARTIFACT', 'start_char': 0, 'end_char': len(first_word), 'score': 0.75})
-        return found_entities
+        return {
+            'text': entity_text,
+            'label': label,
+            'start_char': start_char,
+            'end_char': end_char
+        }
 
 
 def main():
     parser = argparse.ArgumentParser(description="Extract Named Entities from text.")
-    parser.add_argument('--config', type=str, required=True, help="Path to the NLP configuration YAML file (e.g., configs/nlp.yaml)")
+
+    
     parser.add_argument('--text', type=str, required=True, help="Text to process for NER.")
+    parser.add_argument('--config', type=str, default="configs/nlp.yaml",
+                        help="Path to the NLP configuration YAML file.")
+
     args = parser.parse_args()
 
-    print(f"Using NLP configuration from: {args.config}")
-    tagger = NERTagger(config_path=args.config)
+    # --- Dummy File Creation for Placeholder Run ---
+    # This setup allows the script to run end-to-end for demonstration.
+    if not os.path.exists(args.config) or "temp_ner_vocab.json" in open(args.config).read():
+        print("Warning: Config or dependent files not found. Creating dummy files for NER test run.")
+        dummy_dir = "temp_ner_run_files"
+        os.makedirs(dummy_dir, exist_ok=True)
 
-    print("\n--- Placeholder Execution of NERTagger ---")
-    # tagger._setup_device()
-    # tagger._load_label_map() # Called in init
-    # tagger._load_model()     # Called in init
+        dummy_model_path = os.path.join(dummy_dir, "dummy_ner_model.pth")
+        dummy_vocab_path = os.path.join(dummy_dir, "temp_ner_vocab.json")
+        dummy_tag_map_path = os.path.join(dummy_dir, "temp_ner_tags.json")
 
-    entities = tagger.extract_entities(args.text)
+        # Create dummy config
+        dummy_cfg = {
+            'ner': {
+                'model_path': dummy_model_path,
+                'vocab_map_path': dummy_vocab_path,
+                'tag_map_path': dummy_tag_map_path,
+                'model_params': {'embedding_dim': 10, 'hidden_dim': 20}, # Small params for dummy model
+                'inference': {'device': 'cpu'}
+            }
+        }
+        with open(args.config, 'w') as f: yaml.dump(dummy_cfg, f)
 
-    print(f"\nOriginal Text:\n{args.text}")
-    print(f"\nExtracted Entities:")
-    if entities:
-        for entity in entities:
-            print(f"  - Text: \"{entity['text']}\", Label: {entity['label']}, "
-                  f"Chars: [{entity['start_char']}:{entity['end_char']}], Score: {entity.get('score', 'N/A'):.2f}")
-    else:
-        print("  No entities found.")
-    print("--- End of Placeholder Execution ---")
+        # Create dummy mappings
+        word_to_ix = {'<PAD>': 0, '<UNK>': 1, 'The': 2, 'Taj': 3, 'Mahal': 4, 'is': 5, 'in': 6, 'Agra': 7}
+        tag_to_ix = {"O": 0, "B-MONUMENT": 1, "I-MONUMENT": 2, "B-LOCATION": 3, "I-LOCATION": 4, "<START>": 5, "<STOP>": 6}
+        with open(dummy_vocab_path, 'w') as f: json.dump(word_to_ix, f)
+        with open(dummy_tag_map_path, 'w') as f: json.dump(tag_to_ix, f)
+
+        # Create dummy model with matching parameters
+        dummy_model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, 10, 20)
+        torch.save(dummy_model.state_dict(), dummy_model_path)
+        print("Dummy model and mapping files created.")
+
+    # --- Main Execution ---
+    try:
+        tagger = NERTagger(config_path=args.config)
+        entities = tagger.extract_entities(args.text)
+
+        print("\n--- NER Inference Results ---")
+        print(f"  Input Text: {args.text}")
+        print(f"  Extracted Entities:")
+        if entities:
+            print(json.dumps(entities, indent=2))
+        else:
+            print("  No entities found.")
+        print("-----------------------------")
+
+    except Exception as e:
+        print(f"\nAn error occurred during NER inference: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+    finally:
+        # --- Clean up dummy files ---
+        with open(args.config, 'r') as f:
+            content = f.read()
+        if "temp_ner_vocab.json" in content:
+            print("\nCleaning up dummy files for NER test run...")
+            cfg_data = yaml.safe_load(content)
+            ner_cfg = cfg_data.get('ner', {})
+            for path_key in ['model_path', 'vocab_map_path', 'tag_map_path']:
+                if ner_cfg.get(path_key) and os.path.exists(ner_cfg[path_key]):
+                    os.remove(ner_cfg[path_key])
+            dummy_dir = os.path.dirname(ner_cfg.get('model_path'))
+            if os.path.exists(dummy_dir): os.rmdir(dummy_dir)
+
 
 if __name__ == '__main__':
-    # To run this placeholder:
-    # python src/nlp/ner.py --config configs/nlp.yaml --text "The Taj Mahal in Agra was built by Mughal emperor Shah Jahan."
-    # Ensure configs/nlp.yaml exists and has an 'ner' section.
-    print("Executing src.nlp.ner (placeholder script)")
-    # Example of simulating args:
-    # import sys
-    # sample_ner_text = "The Qutub Minar in Delhi is a famous monument from the Delhi Sultanate period, around 1192 AD."
-    # sys.argv = ['', '--config', 'configs/nlp.yaml', '--text', sample_ner_text]
-    # main()
-    print("To run full placeholder main: python src/nlp/ner.py --config path/to/nlp.yaml --text \"Your text here\"")
+    # Example: python src/nlp/ner.py --text "The Taj Mahal is in Agra" --config configs/nlp.yaml
+    print("Executing src.nlp.ner (with implemented inference logic)...")
+    main()
