@@ -1,0 +1,80 @@
+# Configuration for OCR Module
+
+# Model settings
+model:
+  name: "CustomIndicOCR_CRNN_BiLSTM" # Example model name
+  type: "CRNN" # CRNN, Transformer, etc.
+  # Path to pre-trained weights or checkpoint for inference
+  # This might be a relative path from the project root or an absolute path
+  # Example: "models/ocr/crnn_devanagari_best.pth"
+  weights_path: null # To be filled after training
+
+  # Architecture specific parameters
+  input_height: 64 # Height of the input image to the model
+  input_channels: 1 # 1 for grayscale, 3 for color
+  rnn_hidden_size: 256
+  num_rnn_layers: 2
+  # Character set / vocabulary path
+  # Example: "data/annotations/ocr_char_list_devanagari.txt"
+  char_list_path: null
+
+# Preprocessing settings for inference
+preprocessing:
+  image_height: 64   # Target height for resizing before feeding to model
+  grayscale: true
+  binarization_threshold: null # null for no fixed threshold, or value like 128, or "otsu"
+  invert_colors: false # If input images are white text on black bg
+
+# Postprocessing settings
+postprocessing:
+  beam_search: false # Whether to use beam search for decoding
+  beam_width: 5      # Beam width if beam_search is true
+  confidence_threshold: 0.5 # Minimum confidence for recognized text
+
+# Training specific configurations (can be a separate file or section)
+training:
+  dataset_path: "data/processed/ocr_training_data/"
+  annotations_file: "data/annotations/ocr_train_annotations.json"
+  validation_split: 0.1
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 100
+  optimizer: "Adam"
+  # Augmentation settings
+  augmentation:
+    enable: true
+    rotate_max_angle: 5
+    scale_max_factor: 0.1
+    noise_level: 0.05
+
+  # Path to save trained models and logs
+  # Example: "models/ocr/"
+  output_dir: "models/ocr/"
+  log_interval: 100 # Log every N batches
+
+# Inference settings
+inference:
+  # Device to run inference on ("cpu", "cuda:0", etc.)
+  device: "cpu"
+  # Settings for text detection if separate from recognition
+  text_detection:
+    enable: true
+    # Path to text detection model if different
+    # Example: "models/ocr/text_detector_craft.pth"
+    detection_model_path: null
+    detection_threshold: 0.7
+    box_threshold: 0.4
+    link_threshold: 0.4
+    low_text_threshold: 0.4
+    # Parameters for segmenting words or lines if detector gives character boxes
+    word_segmentation: true
+
+# Example for different scripts if needed
+# Example: Devanagari OCR might have a different char_list or model weights
+# script_specific_configs:
+#   devanagari:
+#     model_weights_path: "models/ocr/crnn_devanagari_best.pth"
+#     char_list_path: "data/annotations/ocr_char_list_devanagari.txt"
+#   tamil:
+#     model_weights_path: "models/ocr/crnn_tamil_best.pth"
+#     char_list_path: "data/annotations/ocr_char_list_tamil.txt"

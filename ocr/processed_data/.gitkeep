@@ -1,0 +1,14 @@
+# This file is intentionally left blank.
+# It's a common convention to use .gitkeep files to ensure that
+# otherwise empty directories are tracked by Git.
+# This directory will store cleaned, augmented, and preprocessed data
+# that is ready to be fed into the model training pipelines.
+#
+# Examples:
+# - Annotated images for OCR training
+# - Parallel corpora for translation model training
+# - Tokenized and indexed text for language models
+# - Pre-computed embeddings (if applicable)
+#
+# Similar to 'datasets/', large processed files might be handled
+# via external storage, with this directory containing metadata or samples.

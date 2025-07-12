@@ -1,0 +1,12 @@
+# This directory is for storing trained multimodal retrieval model checkpoints,
+# vector indexes, and related files.
+# Examples:
+# - Image embedding models: e.g., image_encoder_resnet50_final.pth
+# - Text embedding models: e.g., text_encoder_bert_final.pth
+# - Joint image-text models (CLIP-like): e.g., custom_clip_epoch20.pt
+# - Saved vector indexes: e.g., artifact_image_index.faiss, text_descriptions_index.ann
+# - Metadata files associated with vector indexes if not stored alongside.
+#
+# Manage large files (model weights, large indexes) using Git LFS or external storage.
+# Configuration files are in `configs/`.
+# Training logs can be stored here or in a dedicated `logs/` directory.

@@ -1,0 +1,12 @@
+# This directory is for storing annotation files related to the datasets.
+# These files provide labels or other metadata crucial for supervised learning.
+#
+# Examples:
+# - OCR annotations: JSON or XML files with bounding boxes and transcribed text for images.
+# - NER annotations: CoNLL format files, JSON (e.g., spaCy format) with tagged entities.
+# - Translation alignments: Parallel corpora in TMX or simple text file formats.
+# - Image captions: JSON or CSV files linking images to their textual descriptions for retrieval models.
+# - Vocabulary files or character lists: .txt files listing unique characters for OCR/NLP models.
+# - Label maps: .json files mapping string labels to integer IDs for classification tasks.
+#
+# These annotation files are usually text-based and can be version-controlled with Git.
