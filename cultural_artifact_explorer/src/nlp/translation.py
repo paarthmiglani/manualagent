@@ -1,171 +1,140 @@
 # src/nlp/translation.py
-# Placeholder for text translation model inference
+# Implements the TextTranslator class for inference using the Transformer model.
 
 import yaml
-# import torch # or tensorflow
-# from transformers import AutoTokenizer, AutoModelForSeq2SeqLM # If using Hugging Face models
+import torch
+import os
+import json
+
+# Import model and utilities from our source files
+from .model_definition_translation import Seq2SeqTransformer, generate_square_subsequent_mask
+# Assuming a Vocabulary class will be available from the dataset file
+# from .dataset_translation import Vocabulary
+
+# --- Placeholder Vocabulary class until dataset_translation.py is fixed ---
+class DummyVocabulary:
+    def __init__(self, stoi, itos):
+        self.stoi = stoi
+        self.itos = itos
+    def encode(self, sentence):
+        return [self.stoi.get(token, self.stoi['<UNK>']) for token in sentence.split()]
+    def decode(self, indices):
+        return " ".join([self.itos.get(str(ix), '<UNK>') for ix in indices])
 
 class TextTranslator:
-    def __init__(self, config_path, specific_model_key=None):
+    def __init__(self, config_path, model_key):
         """
-        Initializes the Text Translator.
+        Initializes the Text Translator for inference.
         Args:
             config_path (str): Path to the main NLP config file (e.g., configs/nlp.yaml).
-            specific_model_key (str, optional): Key for a specific translation model defined
-                                                in the config, e.g., "hi_en" for Hindi to English.
-                                                If None, will use default or require it in translate method.
+            model_key (str): Key for a specific translation model (e.g., "en_hi").
+
         """
         with open(config_path, 'r') as f:
             nlp_config = yaml.safe_load(f)
+        self.trans_config = nlp_config.get('translation', {}).get('models', {}).get(model_key)
+        if not self.trans_config:
+            raise ValueError(f"Translation config for model_key '{model_key}' not found.")
 
-        self.trans_config_global = nlp_config.get('translation', {})
-        self.specific_model_key = specific_model_key
+        self.infer_config = nlp_config.get('translation', {}).get('inference', {})
+        self.model_key = model_key
+
         self.model = None
-        self.tokenizer = None
+        self.src_vocab = None
+        self.tgt_vocab = None
         self.device = None
 
-        if specific_model_key:
-            model_config = self.trans_config_global.get('models', {}).get(specific_model_key)
-            if not model_config:
-                raise ValueError(f"Model configuration for '{specific_model_key}' not found in NLP config.")
-            self.current_model_config = model_config
-            # self._load_model(model_config) # Load specific model if key provided
-        else:
-            print("TextTranslator initialized without a specific model. Model must be specified or loaded on demand.")
-
-        # self._setup_device()
-        print(f"TextTranslator initialized. Specific model key: {specific_model_key or 'Not set'}")
+        self._setup_device()
+        self._load_vocab()
+        self._load_model()
+        print(f"TextTranslator for '{model_key}' initialized.")
 
     def _setup_device(self):
-        # device_str = self.trans_config_global.get('inference', {}).get('device', 'cpu')
-        # self.device = torch.device(device_str)
-        # print(f"Using device: {self.device}")
-        pass
+        self.device = torch.device(self.infer_config.get('device', 'cpu'))
+        print(f"Using device: {self.device}")
 
-    def _load_model(self, model_config_dict):
-        """Loads a specific translation model and tokenizer based on its config dict."""
-        print(f"Loading translation model and tokenizer from config (placeholder)...")
-        # model_path = model_config_dict.get('model_path')
-        # tokenizer_path = model_config_dict.get('tokenizer_path', model_path) # Often same path for HF models
-        # model_type = model_config_dict.get('model_type', "Seq2SeqTransformer")
+    def _load_vocab(self):
+        """Loads source and target vocabularies."""
+        print("Loading translation vocabularies...")
+        src_vocab_path = self.trans_config.get('src_vocab_path')
+        tgt_vocab_path = self.trans_config.get('tgt_vocab_path')
+        if not src_vocab_path or not tgt_vocab_path:
+            raise ValueError("Paths to 'src_vocab_path' and 'tgt_vocab_path' must be specified in config.")
 
-        # if not model_path:
-        #     raise ValueError("model_path not specified for the translation model in config.")
+        # self.src_vocab = Vocabulary(file_path=src_vocab_path) # Assumes Vocabulary class handles loading
+        # self.tgt_vocab = Vocabulary(file_path=tgt_vocab_path)
+        # Placeholder loading:
+        with open(src_vocab_path, 'r') as f: src_stoi = json.load(f)
+        with open(tgt_vocab_path, 'r') as f: tgt_stoi = json.load(f)
+        src_itos = {v: k for k, v in src_stoi.items()}
+        tgt_itos = {v: k for k, v in tgt_stoi.items()}
+        self.src_vocab = DummyVocabulary(src_stoi, src_itos)
+        self.tgt_vocab = DummyVocabulary(tgt_stoi, tgt_itos)
+        print("Vocabularies loaded.")
 
-        # print(f"Model type: {model_type}, Path: {model_path}")
-        # self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-        # self.model = AutoModelForSeq2SeqLM.from_pretrained(model_path).to(self.device)
-        # self.model.eval()
+    def _load_model(self):
+        """Loads the trained Transformer model."""
+        model_path = self.trans_config.get('model_path')
+        if not model_path or not os.path.exists(model_path):
+            raise FileNotFoundError(f"Translation model not found at: {model_path}")
 
-        # For custom models, loading would be different:
-        # self.tokenizer = YourCustomTokenizer(load_path=tokenizer_path)
-        # self.model = YourCustomSeq2SeqModel(**model_config_dict.get('arch_params', {}))
-        # self.model.load_state_dict(torch.load(model_path, map_location=self.device))
-        # self.model.to(self.device)
-        # self.model.eval()
+        model_params = self.trans_config.get('model_params', {})
+        self.model = Seq2SeqTransformer(
+            num_encoder_layers=model_params['num_encoder_layers'],
+            num_decoder_layers=model_params['num_decoder_layers'],
+            emb_size=model_params['embedding_dim'],
+            nhead=model_params['num_heads'],
+            src_vocab_size=len(self.src_vocab.stoi),
+            tgt_vocab_size=len(self.tgt_vocab.stoi),
+            dim_feedforward=model_params.get('feedforward_dim', 512)
+        ).to(self.device)
 
-        self.model = "dummy_translation_model"
-        self.tokenizer = "dummy_translation_tokenizer"
-        print(f"Model and tokenizer for '{self.specific_model_key}' loaded (placeholder).")
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model.eval()
+        print("Translation model loaded successfully.")
 
-
-    def translate(self, text, source_lang=None, target_lang=None, model_key=None):
+    def translate(self, source_sentence, max_len=50):
         """
-        Translates text.
+        Translates a single source sentence using greedy decoding.
         Args:
-            text (str): Text to translate.
-            source_lang (str, optional): Source language code (e.g., 'hi').
-            target_lang (str, optional): Target language code (e.g., 'en').
-            model_key (str, optional): Explicit key for model config (e.g., 'hi_en').
-                                       Overrides class's specific_model_key if provided.
+            source_sentence (str): The sentence to translate.
+            max_len (int): The maximum length of the generated translation.
         Returns:
-            str: Translated text.
+            str: The translated sentence.
         """
-        active_model_key = model_key or self.specific_model_key
-        if not active_model_key:
-            # Try to infer from source_lang and target_lang if provided
-            if source_lang and target_lang:
-                active_model_key = f"{source_lang}_{target_lang}"
-            else:
-                # Use default if available
-                default_src = self.trans_config_global.get('default_source_language', 'auto')
-                default_tgt = self.trans_config_global.get('default_target_language', 'en')
-                if default_src != 'auto': # Requires a specific source
-                     active_model_key = f"{default_src}_{default_tgt}"
-                else:
-                    raise ValueError("No specific model key, source/target lang provided, and default source is 'auto'. Cannot determine model.")
+        self.model.eval()
 
-        # Load model if not already loaded or if a different one is requested
-        if active_model_key != self.specific_model_key or self.model is None:
-            print(f"Switching/loading model for key: {active_model_key}")
-            current_model_config = self.trans_config_global.get('models', {}).get(active_model_key)
-            if not current_model_config:
-                return f"[Error: Model config for '{active_model_key}' not found. Original: {text}]"
-            # self._load_model(current_model_config) # This would load the actual model
-            # self.specific_model_key = active_model_key # Update current model context
-            # For placeholder, we just acknowledge:
-            print(f"Placeholder: Would load model for {active_model_key}")
-            self.model = f"dummy_model_for_{active_model_key}"
-            self.tokenizer = f"dummy_tokenizer_for_{active_model_key}"
+        # 1. Preprocess the source sentence
+        src_tokens = self.src_vocab.encode(source_sentence)
+        src_tensor = torch.LongTensor(src_tokens).unsqueeze(0).to(self.device) # (1, src_len)
 
+        # 2. Create source masks
+        src_padding_mask = (src_tensor == self.src_vocab.stoi['<PAD>']).to(self.device)
 
-        if self.model is None or self.tokenizer is None:
-            return f"[Error: Translation model for '{active_model_key}' not loaded. Original: {text}]"
+        # 3. Encode the source sentence
+        with torch.no_grad():
+            memory = self.model.encode(src_tensor, None, src_padding_mask)
+        memory = memory.to(self.device)
 
-        print(f"Translating text (model: {active_model_key}): \"{text[:50]}...\" (placeholder)...")
+        # 4. Greedy Decoding
+        # Start with the <BOS> token
+        tgt_indices = [self.tgt_vocab.stoi['<BOS>']]
 
-        # Placeholder for actual translation logic:
-        # 1. Preprocess/tokenize text using self.tokenizer (handle source lang if tokenizer is multilingual)
-        #    For Hugging Face:
-        #    if source_lang and hasattr(self.tokenizer, 'src_lang'): # For mBART style tokenizers
-        #        self.tokenizer.src_lang = source_lang
-        #    inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(self.device)
+        for i in range(max_len - 1):
+            tgt_tensor = torch.LongTensor(tgt_indices).unsqueeze(0).to(self.device)
 
-        # 2. Generate translation using self.model.generate()
-        #    gen_kwargs = {"max_length": self.trans_config_global.get('inference', {}).get('max_length_multiplier', 1.5) * len(text.split()) + 10,
-        #                  "num_beams": self.trans_config_global.get('inference', {}).get('beam_size', 4)}
-        #    if target_lang and hasattr(self.tokenizer, 'tgt_lang') and hasattr(self.model.config, 'forced_bos_token_id'): # For mBART/Marian
-        #        forced_bos_token_id = self.tokenizer.lang_code_to_id[target_lang]
-        #        gen_kwargs["forced_bos_token_id"] = forced_bos_token_id
-        #    translated_tokens = self.model.generate(**inputs, **gen_kwargs)
+            # Create target mask for decoder
+            tgt_padding_mask = (tgt_tensor == self.tgt_vocab.stoi['<PAD>']).to(self.device)
+            tgt_mask = generate_square_subsequent_mask(tgt_tensor.size(1), self.device)
 
-        # 3. Decode tokens to text
-        #    translated_text = self.tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)[0]
+            with torch.no_grad():
+                output = self.model.decode(tgt_tensor, memory, tgt_mask, tgt_padding_mask, None)
+                # Get the logits for the last token
+                last_token_logits = self.model.generator(output[:, -1])
+                # Find the token with the highest probability
+                pred_token_ix = last_token_logits.argmax(1).item()
 
-        # Dummy translation
-        translated_text = f"Translated ({active_model_key}): {text}"
+            tgt_indices.append(pred_token_ix)
 
-        print(f"Translation result: \"{translated_text}\" (placeholder)")
-        return translated_text
-
-def main():
-    parser = argparse.ArgumentParser(description="Translate text using a configured NLP model.")
-    parser.add_argument('--config', type=str, required=True, help="Path to the NLP configuration YAML file (e.g., configs/nlp.yaml)")
-    parser.add_argument('--text', type=str, required=True, help="Text to translate.")
-    parser.add_argument('--model_key', type=str, help="Specific model key (e.g., 'hi_en') from NLP config.")
-    parser.add_argument('--source_lang', type=str, help="Source language code (e.g., 'hi').")
-    parser.add_argument('--target_lang', type=str, default='en', help="Target language code (e.g., 'en').")
-    args = parser.parse_args()
-
-    print(f"Using NLP configuration from: {args.config}")
-    translator = TextTranslator(config_path=args.config, specific_model_key=args.model_key)
-
-    print("\n--- Placeholder Execution of TextTranslator ---")
-    # translator._setup_device() # Called in init, but for placeholder structure
-
-    translated = translator.translate(args.text, source_lang=args.source_lang, target_lang=args.target_lang, model_key=args.model_key)
-
-    print(f"\nOriginal Text: {args.text}")
-    print(f"Translated Text: {translated}")
-    print("--- End of Placeholder Execution ---")
-
-if __name__ == '__main__':
-    # To run this placeholder:
-    # python src/nlp/translation.py --config configs/nlp.yaml --text "यह एक परीक्षण है" --model_key "hi_en"
-    # Ensure configs/nlp.yaml exists and has a models.hi_en section (even if paths are null).
-    print("Executing src.nlp.translation (placeholder script)")
-    # Example of simulating args:
-    # import sys
-    # sys.argv = ['', '--config', 'configs/nlp.yaml', '--text', 'नमस्ते दुनिया', '--model_key', 'hi_en']
-    # main()
-    print("To run full placeholder main: python src/nlp/translation.py --config path/to/nlp.yaml --text \"your text\" --model_key hi_en")
+            # Stop if we predict the <EOS>
+ 

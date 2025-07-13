@@ -125,7 +125,8 @@ class OCRTrainer:
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=self.train_config.get('weight_decay', 0.0))
         else:
             self.optimizer = optim.RMSprop(self.model.parameters(), lr=lr)
-        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min', patience=3, verbose=True)
+        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min', patience=3)
+
 
     def train_epoch(self, epoch_num):
         """Runs a single training epoch."""
