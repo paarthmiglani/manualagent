@@ -23,6 +23,7 @@ streamlit
 
 # Configuration File Handling
 PyYAML
+editdistance
 
 # Development & Testing
 pytest

@@ -1,5 +1,5 @@
 # src/ocr/train.py
-# Script for OCR model training.
+# Script for OCR model training, now with validation.
 
 import yaml
 import argparse
@@ -8,11 +8,14 @@ import sys
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
+import numpy as np
 
 # Import model, dataset, and utilities from our source files
 from .model_definition import CRNN
 from .dataset import OCRDataset, ocr_collate_fn
-from .utils import load_char_list # For getting vocab size
+from .utils import load_char_list
+from .postprocess import ctc_decode_predictions
+from ..utils.metrics import calculate_cer, calculate_wer # Import from top-level utils
 
 class OCRTrainer:
     def __init__(self, config_path):
@@ -28,6 +31,7 @@ class OCRTrainer:
 
         print(f"OCRTrainer initialized. Model outputs will be saved to: {self.output_dir}")
         self._setup_device()
+        self._load_char_list() # Load char list before building model and data
         self._build_model()
         self._load_data()
         self._setup_training_components()
@@ -37,131 +41,148 @@ class OCRTrainer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
 
+    def _load_char_list(self):
+        """Loads the character list to be used by the model and dataset."""
+        char_list_path = self.model_config.get('char_list_path')
+        if not char_list_path:
+            raise ValueError("Path to 'char_list_path' must be specified in model config.")
+        self.char_list = load_char_list(char_list_path)
+        self.ix_to_char = {i + 1: char for i, char in enumerate(self.char_list)}
+        self.ix_to_char[0] = '<BLANK>'
+
+
     def _build_model(self):
         """Builds the CRNN model based on configuration."""
         print("Building OCR model...")
-        char_list_path = self.model_config['char_list_path']
-        char_list = load_char_list(char_list_path)
-        num_classes = len(char_list) + 1  # +1 for the blank token required by CTC
+        num_classes = len(self.char_list) + 1  # +1 for the blank token required by CTC
 
         self.model = CRNN(
             img_channels=self.model_config.get('input_channels', 1),
             num_classes=num_classes,
             rnn_hidden_size=self.model_config.get('rnn_hidden_size', 256),
             rnn_num_layers=self.model_config.get('num_rnn_layers', 2),
-            dropout=self.model_config.get('rnn_dropout', 0.5) # Example new config key
+            dropout=self.model_config.get('rnn_dropout', 0.5)
         ).to(self.device)
         print("Model built successfully.")
-        print(f"  Number of classes: {num_classes}")
 
     def _load_data(self):
         """Loads training and validation datasets."""
         print("Loading OCR training and validation data...")
-        # Assuming annotations are in a single file and we might split it or use separate files.
-        # For simplicity, let's assume the config points to a training annotation file.
-        # Validation would ideally use a separate file.
+        common_dataset_params = {
+            'char_list_path': self.model_config['char_list_path'],
+            'image_height': self.model_config.get('input_height', 32),
+            'image_width': self.model_config.get('input_width', 256),
+            'binarize': self.config.get('preprocessing', {}).get('binarize', False)
+        }
+
+        # Training dataset
         train_dataset = OCRDataset(
             annotations_file=self.train_config['annotations_file'],
             img_dir=self.train_config['dataset_path'],
-            char_list_path=self.model_config['char_list_path'],
-            image_height=self.model_config.get('input_height', 32),
-            image_width=self.model_config.get('input_width', 128), # Add width to config
-            binarize=self.config.get('preprocessing', {}).get('binarize', False)
+            **common_dataset_params
         )
-
         self.train_loader = DataLoader(
             dataset=train_dataset,
             batch_size=self.train_config['batch_size'],
             shuffle=True,
-            num_workers=self.train_config.get('num_workers', 2), # Add num_workers to config
+            num_workers=self.train_config.get('num_workers', 2),
             collate_fn=ocr_collate_fn,
             pin_memory=True
         )
+        print(f"  Training data loaded: {len(train_dataset)} samples.")
 
-        # Placeholder for validation loader
-        # val_annotations_file = self.train_config.get('validation_annotations_file')
-        # if val_annotations_file:
-        #     val_dataset = OCRDataset(...)
-        #     self.val_loader = DataLoader(...)
-        # else:
+        # Validation dataset
         self.val_loader = None
-        print("Data loading complete.")
+        val_ann_file = self.train_config.get('validation_annotations_file')
+        val_img_dir = self.train_config.get('validation_dataset_path')
+        if val_ann_file and val_img_dir:
+            val_dataset = OCRDataset(
+                annotations_file=val_ann_file,
+                img_dir=val_img_dir,
+                **common_dataset_params
+            )
+            self.val_loader = DataLoader(
+                dataset=val_dataset,
+                batch_size=self.train_config.get('validation_batch_size', self.train_config['batch_size']),
+                shuffle=False,
+                num_workers=self.train_config.get('num_workers', 2),
+                collate_fn=ocr_collate_fn,
+                pin_memory=True
+            )
+            print(f"  Validation data loaded: {len(val_dataset)} samples.")
+        else:
+            print("  No validation dataset configured.")
+
 
     def _setup_training_components(self):
         """Sets up the loss function, optimizer, and scheduler."""
         print("Setting up optimizer, scheduler, and loss function...")
         self.criterion = torch.nn.CTCLoss(blank=0, zero_infinity=True).to(self.device)
-
         optimizer_name = self.train_config.get('optimizer', 'Adam').lower()
         lr = self.train_config.get('learning_rate', 0.001)
 
         if optimizer_name == 'adam':
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=self.train_config.get('weight_decay', 0.0))
-        elif optimizer_name == 'rmsprop':
-            self.optimizer = optim.RMSprop(self.model.parameters(), lr=lr)
         else:
-            raise ValueError(f"Unsupported optimizer: {optimizer_name}")
-
-        # Optional: Learning rate scheduler
-        # scheduler_name = self.train_config.get('scheduler', None)
-        # if scheduler_name == 'reducelronplateau':
-        #     self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min', patience=3)
-        # else:
-        self.scheduler = None
-
-        print(f"  Optimizer: {optimizer_name.capitalize()}, Learning Rate: {lr}")
-        print(f"  Loss Function: CTCLoss")
+            self.optimizer = optim.RMSprop(self.model.parameters(), lr=lr)
+        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min', patience=3, verbose=True)
 
     def train_epoch(self, epoch_num):
         """Runs a single training epoch."""
         self.model.train()
         total_loss = 0
-
-        for i, (images, labels, image_widths, label_lengths) in enumerate(self.train_loader):
-            images = images.to(self.device)
-            labels = labels.to(self.device)
-            image_widths = image_widths.to(self.device)
-            label_lengths = label_lengths.to(self.device)
-
+        for i, (images, labels, _, label_lengths) in enumerate(tqdm(self.train_loader, desc=f"Epoch {epoch_num+1} Training")):
+            images, labels, label_lengths = images.to(self.device), labels.to(self.device), label_lengths.to(self.device)
             self.optimizer.zero_grad()
-
-            # Forward pass
-            log_probs = self.model(images) # Output shape: (SeqLen, Batch, NumClasses)
-
-            # CTC Loss requires input_lengths to be based on the model's output sequence length.
-            # Our model definition implies a downsampling factor of 4.
-            # A more robust way is to get this from the model output shape directly.
-            input_lengths = torch.full(size=(images.size(0),), fill_value=log_probs.size(0), dtype=torch.long).to(self.device)
-
-            # Calculate loss
+            log_probs = self.model(images)
+            input_lengths = torch.full(size=(images.size(0),), fill_value=log_probs.size(0), dtype=torch.long)
             loss = self.criterion(log_probs, labels, input_lengths, label_lengths)
-
-            # Backward pass and optimize
             loss.backward()
-            # Optional: Gradient clipping
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.train_config.get('grad_clip_norm', 5))
             self.optimizer.step()
-
             total_loss += loss.item()
-
-            if (i + 1) % self.train_config.get('log_interval', 10) == 0:
-                print(f"  Epoch {epoch_num+1}, Batch [{i+1}/{len(self.train_loader)}], Loss: {loss.item():.4f}")
 
         avg_epoch_loss = total_loss / len(self.train_loader)
         print(f"End of Epoch {epoch_num+1}, Average Training Loss: {avg_epoch_loss:.4f}")
         return avg_epoch_loss
 
     def validate_epoch(self, epoch_num):
-        """Runs a single validation epoch."""
+        """Runs a single validation epoch and computes metrics."""
         if not self.val_loader:
             print("No validation loader configured. Skipping validation.")
             return
 
+        print(f"Running validation for Epoch {epoch_num+1}...")
         self.model.eval()
-        # Validation logic would go here (e.g., calculate CER/WER or validation loss)
-        # ...
-        print(f"End of Epoch {epoch_num+1}, Validation placeholder.")
+        total_cer, total_wer, val_loss = 0, 0, 0
 
+        with torch.no_grad():
+            for images, labels, _, label_lengths in tqdm(self.val_loader, desc=f"Epoch {epoch_num+1} Validation"):
+                images, labels, label_lengths = images.to(self.device), labels.to(self.device), label_lengths.to(self.device)
+                log_probs = self.model(images)
+                input_lengths = torch.full(size=(images.size(0),), fill_value=log_probs.size(0), dtype=torch.long)
+                loss = self.criterion(log_probs, labels, input_lengths, label_lengths)
+                val_loss += loss.item()
+
+                # Decode predictions for metrics calculation
+                preds = log_probs.permute(1, 0, 2).cpu().numpy() # (B, T, C)
+
+                for i in range(len(preds)):
+                    pred_text, _ = ctc_decode_predictions(preds[i], self.char_list, blank_idx=0)
+
+                    # Decode ground truth label
+                    true_label_indices = labels[i][:label_lengths[i]].tolist()
+                    true_text = "".join([self.ix_to_char[ix] for ix in true_label_indices])
+
+                    total_cer += calculate_cer(true_text, pred_text)
+                    total_wer += calculate_wer(true_text, pred_text)
+
+        avg_val_loss = val_loss / len(self.val_loader)
+        avg_cer = total_cer / len(self.val_loader.dataset)
+        avg_wer = total_wer / len(self.val_loader.dataset)
+
+        print(f"Validation Results Epoch {epoch_num+1}: Loss={avg_val_loss:.4f}, CER={avg_cer:.4f}, WER={avg_wer:.4f}")
+        return avg_val_loss
 
     def run_training(self):
         """Main training loop."""
@@ -169,18 +190,12 @@ class OCRTrainer:
         num_epochs = self.train_config.get('epochs', 1)
 
         for epoch in range(num_epochs):
-            print(f"\n--- Epoch {epoch+1}/{num_epochs} ---")
-            train_loss = self.train_epoch(epoch)
+            self.train_epoch(epoch)
+            val_metric = self.validate_epoch(epoch)
 
-            # Run validation if configured
-            self.validate_epoch(epoch)
+            if self.scheduler and val_metric is not None:
+                self.scheduler.step(val_metric)
 
-            # Step the scheduler if it's based on validation metric
-            if self.scheduler:
-                # self.scheduler.step(validation_metric)
-                pass
-
-            # Save model checkpoint
             if (epoch + 1) % self.train_config.get('save_epoch_interval', 1) == 0:
                 save_path = os.path.join(self.output_dir, f"crnn_epoch_{epoch+1}.pth")
                 torch.save(self.model.state_dict(), save_path)
@@ -189,48 +204,31 @@ class OCRTrainer:
         print("\n--- OCR Model Training Finished ---")
 
 def main():
-    parser = argparse.ArgumentParser(description="Train an OCR model.")
-    parser.add_argument('--config', type=str, default="configs/ocr.yaml",
-                        help="Path to the OCR configuration YAML file.")
+    parser = argparse.ArgumentParser(description="Train an OCR model with validation.")
+    parser.add_argument('--config', type=str, default="configs/ocr.yaml", help="Path to the OCR configuration YAML file.")
     args = parser.parse_args()
 
-    # Create dummy files for placeholder run if they don't exist
+    # Simple check for dummy run
     if not os.path.exists(args.config):
-        print(f"Warning: Config file not found at {args.config}. Creating a dummy one.")
-        os.makedirs(os.path.dirname(args.config), exist_ok=True)
-        dummy_cfg = {
-            'model': {'char_list_path': 'temp_chars.txt', 'input_height': 32, 'input_width': 128},
-            'training': {'annotations_file': 'temp_ann.csv', 'dataset_path': 'temp_imgs', 'batch_size': 2, 'epochs': 1, 'num_workers': 0}
-        }
-        with open(args.config, 'w') as f: yaml.dump(dummy_cfg, f)
-
-        # Create other dummy files based on config
-        with open(dummy_cfg['model']['char_list_path'], 'w') as f: f.write('a\nb\nc\n')
-        os.makedirs(dummy_cfg['training']['dataset_path'], exist_ok=True)
-        pd.DataFrame([{'filename':'dummy1.png', 'text':'a'}]).to_csv(dummy_cfg['training']['annotations_file'], index=False)
-        cv2.imwrite(os.path.join(dummy_cfg['training']['dataset_path'], 'dummy1.png'), np.zeros((32,128,3), dtype=np.uint8))
-
+        print("Config file not found. This script requires a valid configuration.")
+        sys.exit(1)
 
     try:
-        trainer = OCRTrainer(config_path=args.config)
-        trainer.run_training()
-    except Exception as e:
-        print(f"\nAn error occurred during training: {e}")
-        import traceback
-        traceback.print_exc()
+        # Add tqdm for progress bars
+        from tqdm import tqdm as tqdm_check
+    except ImportError:
+        print("Please install tqdm: pip install tqdm")
         sys.exit(1)
-    finally:
-        # Clean up dummy files created for placeholder run
-        if 'temp_chars.txt' in open(args.config).read():
-            os.remove('temp_chars.txt')
-            os.remove('temp_ann.csv')
-            os.remove('temp_imgs/dummy1.png')
-            os.rmdir('temp_imgs')
-            # os.remove(args.config) # Optional: remove dummy config too
+
+    trainer = OCRTrainer(config_path=args.config)
+    trainer.run_training()
 
 if __name__ == '__main__':
-    # This script now has a more complete training loop.
-    # To run, you need a proper config file and dataset.
-    # The placeholder `main` function creates dummy files to allow a dry run.
-    print("Executing src.ocr.train (with implemented training loop)...")
+    # Add tqdm for progress bars if not already installed
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        print("Tqdm not found. Please install it: pip install tqdm")
+        sys.exit(1)
+
     main()

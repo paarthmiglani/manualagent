@@ -131,51 +131,50 @@ def calculate_ner_metrics(y_true_tags, y_pred_tags, scheme='IOB2'):
 # --- OCR Specific Metrics ---
 def calculate_cer(reference_text, hypothesis_text):
     """
-    Calculates Character Error Rate (CER).
+    Calculates Character Error Rate (CER) using the editdistance library.
     CER = (Substitutions + Insertions + Deletions) / Number of characters in reference.
-    Requires an alignment algorithm (e.g., Levenshtein distance).
     """
-    print("Calculating CER (placeholder in metrics.py)...")
-    # if not isinstance(reference_text, str) or not isinstance(hypothesis_text, str):
-    #     return 1.0 # Max error if inputs are invalid
-    # if not reference_text: # Empty reference
-    #     return 1.0 if hypothesis_text else 0.0 # All insertions if hypothesis not empty
+    try:
+        import editdistance
+    except ImportError:
+        print("Warning: 'editdistance' library not found. Cannot calculate CER/WER.")
+        print("Please install it: pip install editdistance")
+        return -1.0 # Return an indicator of error
 
-    # # Using a library like 'editdistance' is common
-    # # import editdistance
-    # # distance = editdistance.eval(reference_text, hypothesis_text)
-    # # cer = distance / len(reference_text)
-    # # return cer
+    if not isinstance(reference_text, str) or not isinstance(hypothesis_text, str):
+        return 1.0  # Max error for invalid input
 
-    # Basic Levenshtein distance placeholder (can be slow for long strings)
-    if reference_text == hypothesis_text: return 0.0
-    # This is a very simplified placeholder, real Levenshtein is more complex.
-    # For simplicity, just return a random error rate.
-    return np.random.uniform(0.05, 0.3) if reference_text else 1.0
+    if not reference_text:
+        return 1.0 if hypothesis_text else 0.0  # All insertions if ref is empty
+
+    distance = editdistance.eval(reference_text, hypothesis_text)
+    cer = distance / len(reference_text)
+    return cer
 
 
 def calculate_wer(reference_text, hypothesis_text):
     """
-    Calculates Word Error Rate (WER).
+    Calculates Word Error Rate (WER) using the editdistance library.
     WER = (Substitutions + Insertions + Deletions) / Number of words in reference.
-    Requires word tokenization and alignment.
     """
-    print("Calculating WER (placeholder in metrics.py)...")
-    # if not isinstance(reference_text, str) or not isinstance(hypothesis_text, str):
-    #     return 1.0
+    try:
+        import editdistance
+    except ImportError:
+        # This warning will be printed by calculate_cer as well, but good to have here too.
+        return -1.0
 
-    # ref_words = reference_text.split()
-    # hyp_words = hypothesis_text.split()
+    if not isinstance(reference_text, str) or not isinstance(hypothesis_text, str):
+        return 1.0
 
-    # if not ref_words:
-    #     return 1.0 if hyp_words else 0.0
+    ref_words = reference_text.split()
+    hyp_words = hypothesis_text.split()
 
-    # # Using a library like 'editdistance' on word lists
-    # # import editdistance
-    # # distance = editdistance.eval(ref_words, hyp_words) # Compares lists element by element
-    # # wer = distance / len(ref_words)
-    # # return wer
-    return np.random.uniform(0.1, 0.4) if reference_text.split() else 1.0
+    if not ref_words:
+        return 1.0 if hyp_words else 0.0
+
+    distance = editdistance.eval(ref_words, hyp_words)
+    wer = distance / len(ref_words)
+    return wer
 
 
 if __name__ == '__main__':
