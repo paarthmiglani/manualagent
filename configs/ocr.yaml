@@ -1,4 +1,44 @@
 model:
-  char_list_path: /app/data/ocr/char_list.txt
+  name: CustomIndicOCR_CRNN_BiLSTM
+  type: CRNN
+  weights_path: null
+  char_list_path: /Users/paarthmiglani/PycharmProjects/manualagent/cultural_artifact_explorer/scripts/data/ocr/char_list.txt
+  input_height: 32
+  input_channels: 1
+  rnn_hidden_size: 256
+  num_rnn_layers: 2
+preprocessing:
+  image_height: 64
+  grayscale: true
+  binarization_threshold: null
+  invert_colors: false
+postprocessing:
+  beam_search: false
+  beam_width: 5
+  confidence_threshold: 0.5
 training:
-  annotations_file: /app/data/ocr/train_annotations.csv
+  dataset_path: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/images
+  annotations_file: /Users/paarthmiglani/PycharmProjects/manualagent/cultural_artifact_explorer/scripts/data/ocr/annotations.csv
+  char_list_path: /Users/paarthmiglani/PycharmProjects/manualagent/cultural_artifact_explorer/scripts/data/ocr/char_list.txt
+  validation_split: 0.1
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 100
+  optimizer: Adam
+  augmentation:
+    enable: true
+    rotate_max_angle: 5
+    scale_max_factor: 0.1
+    noise_level: 0.05
+  output_dir: models/ocr/
+  log_interval: 100
+inference:
+  device: cpu
+  text_detection:
+    enable: true
+    detection_model_path: null
+    detection_threshold: 0.7
+    box_threshold: 0.4
+    link_threshold: 0.4
+    low_text_threshold: 0.4
+    word_segmentation: true
