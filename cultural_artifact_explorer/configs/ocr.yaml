@@ -43,9 +43,29 @@ training:
   # Augmentation settings
   augmentation:
     enable: true
-    rotate_max_angle: 5
-    scale_max_factor: 0.1
-    noise_level: 0.05
+    # -- Geometric Distortions --
+    rotate_limit: 5  # degrees
+    scale_limit: 0.1 # e.g., 0.1 means scale between 90% and 110%
+    shear_limit: 3   # degrees
+    grid_distortion:
+      enable: true
+      num_steps: 5
+      distort_limit: 0.2
+
+    # -- Color and Noise --
+    brightness_contrast:
+      enable: true
+      contrast_limit: 0.2
+      brightness_limit: 0.2
+
+    blur:
+      enable: true
+      blur_limit: 3 # max kernel size
+
+    gaussian_noise:
+      enable: true
+      var_limit: [10.0, 50.0] # variance range
+
 
   # Path to save trained models and logs
   # Example: "models/ocr/"

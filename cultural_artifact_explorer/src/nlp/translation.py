@@ -28,6 +28,7 @@ class TextTranslator:
         Args:
             config_path (str): Path to the main NLP config file (e.g., configs/nlp.yaml).
             model_key (str): Key for a specific translation model (e.g., "en_hi").
+        """
         with open(config_path, 'r') as f:
             nlp_config = yaml.safe_load(f)
         self.trans_config = nlp_config.get('translation', {}).get('models', {}).get(model_key)

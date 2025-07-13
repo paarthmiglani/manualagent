@@ -75,9 +75,11 @@ class OCRTrainer:
             'binarize': self.config.get('preprocessing', {}).get('binarize', False)
         }
 
-        # Training dataset
+        # Training dataset (with augmentations)
         train_dataset = OCRDataset(
             annotations_file=self.train_config['annotations_file'],
+            augmentation_config=self.train_config.get('augmentation'),
+            is_train=True,
             **common_dataset_params
         )
         self.train_loader = DataLoader(
@@ -94,8 +96,11 @@ class OCRTrainer:
         self.val_loader = None
         val_ann_file = self.train_config.get('validation_annotations_file')
         if val_ann_file:
+            # Validation dataset (no augmentations)
             val_dataset = OCRDataset(
                 annotations_file=val_ann_file,
+                augmentation_config=None, # Ensure no augmentations for validation
+                is_train=False,
                 **common_dataset_params
             )
             self.val_loader = DataLoader(

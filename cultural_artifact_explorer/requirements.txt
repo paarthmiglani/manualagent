@@ -24,6 +24,8 @@ streamlit
 # Configuration File Handling
 PyYAML
 editdistance
+albumentations
+
 
 # Development & Testing
 pytest

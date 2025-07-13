@@ -1,5 +1,4 @@
 # scripts/prepare_ocr_dataset.py
-
 # Script to automate the preparation of OCR dataset files for training and validation,
 # now with support for multiple data directories to create a unified multilingual dataset.
 import os
@@ -72,8 +71,6 @@ def update_ocr_config(config_path, train_ann_path, val_ann_path, char_list_path)
 
     if 'model' not in config_data: config_data['model'] = {}
     if 'training' not in config_data: config_data['training'] = {}
-
-
     # Remove old dataset_path keys and set new annotation file paths
     config_data['training'].pop('dataset_path', None)
     config_data['training'].pop('validation_dataset_path', None)
@@ -134,7 +131,6 @@ def main():
     with open(char_list_path, 'w', encoding='utf-8') as f:
         for char in sorted_chars:
             f.write(char + '\n')
-
     print(f"Unified character list created with {len(sorted_chars)} unique characters at: {char_list_path}")
     update_ocr_config(
         config_path=args.config_path,
