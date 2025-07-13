@@ -66,6 +66,7 @@ training:
       enable: true
       var_limit: [10.0, 50.0] # variance range
 
+
   # Path to save trained models and logs
   # Example: "models/ocr/"
   output_dir: "models/ocr/"

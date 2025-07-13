@@ -1,6 +1,5 @@
 # src/ocr/dataset.py
 # Defines the custom Dataset and DataLoader logic for OCR, now with data augmentation.
-
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
@@ -9,9 +8,9 @@ import pandas as pd
 import cv2
 import numpy as np
 import albumentations as A
-
 # Assuming utils.py is in the same directory or src is in PYTHONPATH
 from .utils import load_char_list
+
 
 class OCRDataset(Dataset):
     """
@@ -90,6 +89,7 @@ class OCRDataset(Dataset):
             transforms.append(A.GaussNoise(var_limit=config['gaussian_noise'].get('var_limit', [10.0, 50.0]), p=0.3))
 
         return A.Compose(transforms)
+
 
     def __len__(self):
         return len(self.annotations)
