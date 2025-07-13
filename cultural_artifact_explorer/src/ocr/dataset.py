@@ -40,7 +40,7 @@ class OCRDataset(Dataset):
         self.is_train = is_train
 
         try:
-            self.annotations = pd.read_csv(annotations_file, keep_default_na=False)
+            self.annotations = pd.read_csv(annotations_file, keep_default_na=False, header=0)
             print(f"  Loaded {len(self.annotations)} annotations. Columns: {self.annotations.columns.tolist()}")
         except Exception as e:
             print(f"Error loading or parsing annotation file {annotations_file}: {e}")
