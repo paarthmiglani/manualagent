@@ -63,6 +63,12 @@ class OCRTrainer:
             rnn_num_layers=self.model_config.get('num_rnn_layers', 2),
             dropout=self.model_config.get('rnn_dropout', 0.5)
         ).to(self.device)
+
+        weights_path = self.model_config.get('weights_path')
+        if weights_path:
+            print(f"Loading pre-trained weights from {weights_path}...")
+            self.model.load_state_dict(torch.load(weights_path, map_location=self.device))
+
         print("Model built successfully.")
 
     def _load_data(self):

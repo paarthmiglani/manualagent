@@ -1,0 +1,4 @@
+model:
+  char_list_path: /app/data/ocr/char_list.txt
+training:
+  annotations_file: /app/data/ocr/train_annotations.csv

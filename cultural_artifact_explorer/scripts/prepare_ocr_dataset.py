@@ -10,16 +10,27 @@ from tqdm import tqdm
 def find_corresponding_gt_file(image_filename, directory):
     """
     Finds the ground truth .txt file for a given image filename.
-    Handles variations like 'img_123.jpg' -> 'gt_img_123.txt'.
+    Handles variations like 'img_123.jpg' -> 'gt_123.txt', 'img_123.jpg' -> '123.txt',
+    or 'image_123.jpg' -> 'gt_image_123.txt'.
     """
     base_name = os.path.splitext(image_filename)[0]
-    if base_name.startswith('img_'):
-        gt_base_name = 'gt_' + base_name
-    else:
-        gt_base_name = 'gt_' + base_name
-    gt_filename = gt_base_name + ".txt"
-    gt_path = os.path.join(directory, gt_filename)
-    return gt_path if os.path.exists(gt_path) else None
+
+    # List of potential ground truth file names
+    possible_gt_filenames = [
+        f"gt_{base_name}.txt",
+        f"{base_name}.txt",
+        f"gt_{base_name.replace('img_', '')}.txt",
+        f"{base_name.replace('img_', '')}.txt",
+        f"{base_name.replace('image_', '')}.txt",
+        f"gt_{base_name.replace('image_', '')}.txt",
+    ]
+
+    for gt_filename in possible_gt_filenames:
+        gt_path = os.path.join(directory, gt_filename)
+        if os.path.exists(gt_path):
+            return gt_path
+
+    return None
 def process_directories(data_directories):
     """
     Scans a list of directories to extract image-text pairs and all unique characters.
@@ -44,9 +55,9 @@ def process_directories(data_directories):
                     with open(gt_file_path, 'r', encoding='utf-8') as f:
                         text_label = f.read().strip()
                     if text_label:
-                        # We need to store the absolute path to the image now
-                        abs_image_path = os.path.abspath(os.path.join(data_dir, image_name))
-                        all_annotation_data.append({'filepath': abs_image_path, 'text': text_label})
+                        # We need to store the relative path to the image now
+                        relative_image_path = os.path.join(data_dir, image_name)
+                        all_annotation_data.append({'filepath': relative_image_path, 'text': text_label})
                         all_characters.update(text_label)
                     else:
                         print(f"Warning: Annotation file '{gt_file_path}' is empty. Skipping.")

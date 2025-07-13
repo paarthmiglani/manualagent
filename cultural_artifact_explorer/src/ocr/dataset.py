@@ -39,10 +39,12 @@ class OCRDataset(Dataset):
         self.is_train = is_train
 
         try:
-            self.annotations = pd.read_csv(annotations_file, keep_default_na=False)
+            # Assuming the CSV has columns 'filepath' and 'text' without a header
+            self.annotations = pd.read_csv(annotations_file, header=None, names=['filepath', 'text'], keep_default_na=False)
             print(f"  Loaded {len(self.annotations)} annotations.")
         except Exception as e:
             print(f"Error loading or parsing annotation file {annotations_file}: {e}")
+            # If loading fails, create an empty dataframe with the expected columns
             self.annotations = pd.DataFrame(columns=['filepath', 'text'])
 
         self.char_list = load_char_list(char_list_path)
@@ -75,6 +77,20 @@ class OCRDataset(Dataset):
                 num_steps=params.get('num_steps', 5),
                 distort_limit=params.get('distort_limit', 0.3),
                 p=0.5, border_mode=cv2.BORDER_CONSTANT
+            ))
+        if config.get('elastic_transform', {}).get('enable'):
+            params = config['elastic_transform']
+            transforms.append(A.ElasticTransform(
+                alpha=params.get('alpha', 1),
+                sigma=params.get('sigma', 50),
+                alpha_affine=params.get('alpha_affine', 50),
+                p=0.5, border_mode=cv2.BORDER_CONSTANT
+            ))
+        if config.get('random_perspective', {}).get('enable'):
+            params = config['random_perspective']
+            transforms.append(A.Perspective(
+                scale=params.get('scale', 0.05),
+                p=0.5
             ))
         if config.get('brightness_contrast', {}).get('enable'):
             params = config['brightness_contrast']
@@ -130,7 +146,7 @@ class OCRDataset(Dataset):
 
         except Exception as e:
             print(f"Warning: Error processing image {image_path}: {e}. Skipping sample.")
-            return self.__getitem__((idx + 1) % len(self)) if len(self) > 1 else (None, None)
+            return None, None
 
         # Encode text label
         encoded_text = [self.char_to_int.get(char, 0) for char in text_label] # Use 0 for unknown chars

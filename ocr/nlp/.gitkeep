@@ -1,8 +1,0 @@
-# This file is intentionally left blank.
-# It's a common convention to use .gitkeep files to ensure that
-# otherwise empty directories are tracked by Git.
-# This directory will contain NLP modules such as:
-# - Translation: Indic text to English (custom seq2seq models)
-# - Summarization: Long paragraph summarization (trained transformer)
-# - NER: Cultural entity detection (monuments, dates, dynasties, locations)
-# All components here are intended to be trained from scratch or with minimal fine-tuning.

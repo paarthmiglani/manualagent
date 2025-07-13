@@ -16,7 +16,7 @@ model:
   num_rnn_layers: 2
   # Character set / vocabulary path
   # Example: "data/annotations/ocr_char_list_devanagari.txt"
-  char_list_path: null
+  char_list_path: data/ocr/char_list.txt
 
 # Preprocessing settings for inference
 preprocessing:
@@ -34,7 +34,7 @@ postprocessing:
 # Training specific configurations (can be a separate file or section)
 training:
   dataset_path: "data/processed/ocr_training_data/"
-  annotations_file: "data/annotations/ocr_train_annotations.json"
+  annotations_file: "data/ocr/train_annotations.csv"
   validation_split: 0.1
   batch_size: 32
   learning_rate: 0.001
@@ -51,6 +51,14 @@ training:
       enable: true
       num_steps: 5
       distort_limit: 0.2
+    elastic_transform:
+      enable: true
+      alpha: 1
+      sigma: 50
+      alpha_affine: 50
+    random_perspective:
+      enable: true
+      scale: 0.05
 
     # -- Color and Noise --
     brightness_contrast:
