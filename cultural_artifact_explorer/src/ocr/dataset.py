@@ -30,7 +30,6 @@ class OCRDataset(Dataset):
         """
         super().__init__()
         print(f"Initializing OCRDataset with annotations from: {annotations_file}")
-        self.img_dir = img_dir
         self.image_height = image_height
         self.image_width = image_width
         self.binarize = binarize
@@ -39,12 +38,11 @@ class OCRDataset(Dataset):
         # Assuming a simple CSV/TSV format. Adjust separator if needed.
         try:
             # self.annotations = pd.read_csv(annotations_file, sep='\t', header=None, names=['filename', 'text'], keep_default_na=False)
-            self.annotations = pd.read_csv(annotations_file, keep_default_na=False) # Assumes header 'filename', 'text'
+            self.annotations = pd.read_csv(annotations_file, keep_default_na=False) # Assumes header 'filepath', 'text'
             print(f"  Loaded {len(self.annotations)} annotations.")
         except Exception as e:
             print(f"Error loading or parsing annotation file {annotations_file}: {e}")
-            self.annotations = pd.DataFrame(columns=['filename', 'text']) # Empty dataframe
-
+            self.annotations = pd.DataFrame(columns=['filepath', 'text']) # Empty dataframe
         # Load character list and create mapping
         self.char_list = load_char_list(char_list_path)
         # Create char -> int and int -> char mappings
@@ -69,11 +67,8 @@ class OCRDataset(Dataset):
             raise IndexError("Index out of range")
 
         record = self.annotations.iloc[idx]
-        image_filename = record['filename']
+        image_path = record['filepath'] # Use the absolute path from the CSV
         text_label = record['text']
-
-        image_path = os.path.join(self.img_dir, image_filename)
-
         # Preprocess the image
         try:
             # Note: preprocess_image_for_ocr from utils returns (C, H, W)

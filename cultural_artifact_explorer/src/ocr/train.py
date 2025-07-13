@@ -78,7 +78,6 @@ class OCRTrainer:
         # Training dataset
         train_dataset = OCRDataset(
             annotations_file=self.train_config['annotations_file'],
-            img_dir=self.train_config['dataset_path'],
             **common_dataset_params
         )
         self.train_loader = DataLoader(
@@ -94,11 +93,9 @@ class OCRTrainer:
         # Validation dataset
         self.val_loader = None
         val_ann_file = self.train_config.get('validation_annotations_file')
-        val_img_dir = self.train_config.get('validation_dataset_path')
-        if val_ann_file and val_img_dir:
+        if val_ann_file:
             val_dataset = OCRDataset(
                 annotations_file=val_ann_file,
-                img_dir=val_img_dir,
                 **common_dataset_params
             )
             self.val_loader = DataLoader(
@@ -126,8 +123,6 @@ class OCRTrainer:
         else:
             self.optimizer = optim.RMSprop(self.model.parameters(), lr=lr)
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min', patience=3)
-
-
     def train_epoch(self, epoch_num):
         """Runs a single training epoch."""
         self.model.train()
