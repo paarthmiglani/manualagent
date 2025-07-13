@@ -1,0 +1,43 @@
+# Core Python and ML Libraries
+numpy<2.0
+opencv-python-headless # For image processing without GUI dependencies
+scikit-learn # For metrics and some utilities
+# Pillow # For image manipulation, often a dependency of vision libs
+
+# NLP Libraries (placeholders, specific versions might be needed)
+# tokenizers # If using Hugging Face tokenizers separately
+# transformers # If fine-tuning or using utility components from Hugging Face (even with custom models)
+
+# Deep Learning Frameworks (choose one or both if necessary)
+# tensorflow
+# torch
+# torchvision
+# torchaudio
+
+# Vector Search Libraries (choose one, or none if using pure numpy)
+# faiss-cpu # or faiss-gpu
+# annoy
+
+# Web Interface (if using Streamlit)
+streamlit
+
+# Configuration File Handling
+PyYAML
+editdistance
+albumentations
+
+# Development & Testing
+pytest
+flake8
+black
+isort
+
+# Packaging (if using setup.py)
+# setuptools
+# wheel
+
+# Add other specific dependencies as modules are developed.
+# Example:
+# pandas # For data handling if needed for datasets or annotations
+# matplotlib # For plotting or visualization utilities
+# tqdm # For progress bars in scripts

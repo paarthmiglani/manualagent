@@ -1,0 +1,8 @@
+# This directory is intended for storing original, unmodified datasets.
+# Examples:
+# - Raw images of cultural artifacts.
+# - Original text documents, manuscripts, or inscriptions.
+# - Collections of parallel text for translation.
+#
+# Due to size, large datasets might be referenced here via download scripts
+# or documentation, rather than being committed directly to the Git repository.
