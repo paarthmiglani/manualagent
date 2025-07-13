@@ -31,7 +31,6 @@ class TextTranslator:
         """
         with open(config_path, 'r') as f:
             nlp_config = yaml.safe_load(f)
-
         self.trans_config = nlp_config.get('translation', {}).get('models', {}).get(model_key)
         if not self.trans_config:
             raise ValueError(f"Translation config for model_key '{model_key}' not found.")
