@@ -39,9 +39,8 @@ class OCRDataset(Dataset):
         self.is_train = is_train
 
         try:
-            # Assuming the CSV has columns 'filepath' and 'text' without a header
-            self.annotations = pd.read_csv(annotations_file, header=None, names=['filepath', 'text'], keep_default_na=False)
-            print(f"  Loaded {len(self.annotations)} annotations.")
+            self.annotations = pd.read_csv(annotations_file, keep_default_na=False, header=0)
+            print(f"  Loaded {len(self.annotations)} annotations. Columns: {self.annotations.columns.tolist()}")
         except Exception as e:
             print(f"Error loading or parsing annotation file {annotations_file}: {e}")
             # If loading fails, create an empty dataframe with the expected columns
