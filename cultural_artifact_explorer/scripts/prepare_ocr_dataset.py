@@ -119,14 +119,14 @@ def main():
     output_dir = os.path.join("data", "ocr")
     os.makedirs(output_dir, exist_ok=True)
 
-    train_df = pd.DataFrame(train_data)
+    train_df = pd.DataFrame(train_data, columns=['filepath', 'text'])
     train_ann_path = os.path.join(output_dir, "train_annotations.csv")
     train_df.to_csv(train_ann_path, index=False)
     print(f"\nTraining annotations file created at: {train_ann_path} ({len(train_df)} entries)")
 
     val_ann_path = None
     if val_data:
-        val_df = pd.DataFrame(val_data)
+        val_df = pd.DataFrame(val_data, columns=['filepath', 'text'])
         val_ann_path = os.path.join(output_dir, "val_annotations.csv")
         val_df.to_csv(val_ann_path, index=False)
         print(f"Validation annotations file created at: {val_ann_path} ({len(val_df)} entries)")
