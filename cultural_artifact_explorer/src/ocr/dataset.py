@@ -41,7 +41,7 @@ class OCRDataset(Dataset):
 
         try:
             self.annotations = pd.read_csv(annotations_file, keep_default_na=False)
-            print(f"  Loaded {len(self.annotations)} annotations.")
+            print(f"  Loaded {len(self.annotations)} annotations. Columns: {self.annotations.columns.tolist()}")
         except Exception as e:
             print(f"Error loading or parsing annotation file {annotations_file}: {e}")
             self.annotations = pd.DataFrame(columns=['filepath', 'text'])
