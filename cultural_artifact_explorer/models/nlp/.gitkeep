@@ -1,0 +1,11 @@
+# This directory is for storing trained NLP model checkpoints and related files.
+# Examples:
+# - Translation models: e.g., seq2seq_hindi_to_english.h5, marian_mt_finetuned_tamil_english.zip
+# - Summarization models: e.g., summarizer_bart_custom.pt
+# - NER models: e.g., ner_bilstm_crf_cultural_entities.model, transformer_ner.bin
+# - Tokenizer model files/vocabularies specific to a trained NLP model instance:
+#   e.g., sentencepiece.model, vocab.txt, merges.txt for Hugging Face tokenizers.
+#
+# As with other model directories, manage large files appropriately (Git LFS, cloud storage).
+# Corresponding configuration files are in `configs/`.
+# Training logs can be stored here or in a dedicated `logs/` directory.
