@@ -17,6 +17,7 @@ try:
     from src.nlp.summarization import TextSummarizer
     from src.nlp.ner import NERTagger
     from src.nlp.utils import preprocess_text_for_nlp # Optional preprocessing
+    from src.utils.search import find_translation_files, read_translation_data
 except ImportError:
     print("Error: Could not import NLP modules from src.")
     print("Please ensure the script is run from the project root, the package is installed, or PYTHONPATH is set correctly.")
@@ -31,11 +32,14 @@ except ImportError:
         def __init__(self, config_path): print(f"Dummy NERTagger (config: {config_path})")
         def extract_entities(self, text): return [{'text': 'dummy_entity', 'label': 'DUMMY', 'start_char':0, 'end_char':5, 'score':0.9}]
     def preprocess_text_for_nlp(text, **kwargs): return text # type: ignore
+    def find_translation_files(path): return []
+    def read_translation_data(path): return []
 
 def main():
     parser = argparse.ArgumentParser(description="Run NLP tasks on input text.")
     parser.add_argument('--text', type=str, help="Direct text input.")
     parser.add_argument('--text_file', type=str, help="Path to a text file to process.")
+    parser.add_argument('--data_dir', type=str, help="Directory to search for translation files.")
     parser.add_argument('--config', type=str, default="configs/nlp.yaml",
                         help="Path to the NLP configuration YAML file.")
     parser.add_argument('--tasks', type=str, nargs='+', required=True,
@@ -56,10 +60,29 @@ def main():
     print(f"  Config: {args.config}")
     print(f"  Tasks: {', '.join(args.tasks)}")
 
+    if args.data_dir:
+        print(f"  Searching for translation files in: {args.data_dir}")
+        translation_files = find_translation_files(args.data_dir)
+        print(f"  Found {len(translation_files)} translation files.")
+        for file_path in translation_files:
+            print(f"    - {file_path}")
+            try:
+                data = read_translation_data(file_path)
+                # This is where you would typically loop through the data and translate
+                # For this example, we'll just print the first record
+                if data:
+                    print(f"      Sample data: {data[0]}")
+            except Exception as e:
+                print(f"      Error reading or processing file {file_path}: {e}")
+        # This is a special mode, so we exit after processing the files
+        return
+
     if not args.text and not args.text_file:
-        parser.error("Either --text or --text_file must be provided.")
-    if args.text and args.text_file:
-        parser.error("Provide either --text or --text_file, not both.")
+        parser.error("Either --text, --text_file, or --data_dir must be provided.")
+    if (args.text and args.text_file) or \
+       (args.text and args.data_dir) or \
+       (args.text_file and args.data_dir):
+        parser.error("Provide only one of --text, --text_file, or --data_dir.")
 
     input_text_content = ""
     if args.text_file:
