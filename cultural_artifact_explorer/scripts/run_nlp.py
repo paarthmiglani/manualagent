@@ -13,27 +13,15 @@ import json
 # sys.path.insert(0, project_root)
 
 try:
-    from src.nlp.translation import TextTranslator
-    from src.nlp.summarization import TextSummarizer
-    from src.nlp.ner import NERTagger
-    from src.nlp.utils import preprocess_text_for_nlp # Optional preprocessing
-    from src.utils.search import find_translation_files, read_translation_data
-except ImportError:
+    from cultural_artifact_explorer.src.nlp.translation import TextTranslator
+    from cultural_artifact_explorer.src.nlp.summarization import TextSummarizer
+    from cultural_artifact_explorer.src.nlp.ner import NERTagger
+    from cultural_artifact_explorer.src.nlp.utils import preprocess_text_for_nlp # Optional preprocessing
+    from cultural_artifact_explorer.src.utils.search import find_translation_files, read_translation_data
+except ImportError as e:
     print("Error: Could not import NLP modules from src.")
     print("Please ensure the script is run from the project root, the package is installed, or PYTHONPATH is set correctly.")
-    # Fallback dummy classes for placeholder execution
-    class TextTranslator: # type: ignore
-        def __init__(self, config_path, specific_model_key=None): print(f"Dummy TextTranslator (config: {config_path}, model_key: {specific_model_key})")
-        def translate(self, text, source_lang=None, target_lang=None, model_key=None): return f"Dummy translation of '{text[:20]}...' to {target_lang or 'en'}"
-    class TextSummarizer: # type: ignore
-        def __init__(self, config_path): print(f"Dummy TextSummarizer (config: {config_path})")
-        def summarize(self, text, min_length=None, max_length=None): return f"Dummy summary of '{text[:20]}...'"
-    class NERTagger: # type: ignore
-        def __init__(self, config_path): print(f"Dummy NERTagger (config: {config_path})")
-        def extract_entities(self, text): return [{'text': 'dummy_entity', 'label': 'DUMMY', 'start_char':0, 'end_char':5, 'score':0.9}]
-    def preprocess_text_for_nlp(text, **kwargs): return text # type: ignore
-    def find_translation_files(path): return []
-    def read_translation_data(path): return []
+    raise e
 
 def main():
     parser = argparse.ArgumentParser(description="Run NLP tasks on input text.")
@@ -168,15 +156,4 @@ def main():
     print("\n--- NLP Processing Script Finished ---")
 
 if __name__ == '__main__':
-    # Example usage from project root:
-    # python scripts/run_nlp.py --text "This is a sample text for testing NLP tasks." --tasks translate summarize ner --translate_target_lang es
-    # python scripts/run_nlp.py --text_file data/samples/sample_document.txt --tasks ner summarize --output_file output/nlp_run/doc_analysis.json
-    print("Executing scripts.run_nlp (placeholder script)")
-    # Simulate args for direct placeholder run:
-    # Ensure dummy files/dirs exist if not using the dummy classes from ImportError block
-    # if not os.path.exists("configs"): os.makedirs("configs")
-    # if not os.path.exists("configs/nlp.yaml"): open("configs/nlp.yaml", 'a').close()
-    # if not os.path.exists("output/nlp_results"): os.makedirs("output/nlp_results", exist_ok=True)
-    # sys.argv = ['', '--text', "Test sentence for all NLP tasks.", '--tasks', 'translate', 'summarize', 'ner', '--config', 'configs/nlp.yaml', '--output_file', 'output/nlp_results/test_output.json']
-    # main()
-    print("To run full placeholder: python scripts/run_nlp.py --text \"Hello world\" --tasks translate --config configs/nlp.yaml")
+    main()
