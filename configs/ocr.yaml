@@ -2,11 +2,12 @@ model:
   name: CustomIndicOCR_CRNN_BiLSTM
   type: CRNN
   weights_path: null
+
   input_height: 32
   input_channels: 1
   rnn_hidden_size: 256
   num_rnn_layers: 2
-  char_list_path: /app/data/ocr/char_list.txt
+  char_list_path: /Users/paarthmiglani/PycharmProjects/manualagent/cultural_artifact_explorer/scripts/data/ocr/char_list.txt
 preprocessing:
   image_height: 32
   grayscale: true
@@ -17,14 +18,8 @@ postprocessing:
   beam_width: 5
   confidence_threshold: 0.5
 training:
-  annotations_file: /app/data/ocr/train_annotations.csv
-  validation_split: 0.1
-  batch_size: 32
-  learning_rate: 0.001
-  epochs: 100
-  optimizer: Adam
-  augmentation:
-    enable: true
+  dataset_path: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/images
+  annotations_file: /Users/paarthmiglani/PycharmProjects/manualagent/cultural_artifact_explorer/scripts/data/ocr/annotations.csv
     rotate_limit: 5
     scale_limit: 0.1
     shear_limit: 3
@@ -44,6 +39,9 @@ training:
       var_limit:
       - 10.0
       - 50.0
+    rotate_max_angle: 5
+    scale_max_factor: 0.1
+    noise_level: 0.05
   output_dir: models/ocr/
   log_interval: 100
 inference:
@@ -56,3 +54,4 @@ inference:
     link_threshold: 0.4
     low_text_threshold: 0.4
     word_segmentation: true
+
