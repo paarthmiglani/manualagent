@@ -19,7 +19,6 @@ postprocessing:
 training:
   dataset_path: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/images
   annotations_file: /Users/paarthmiglani/PycharmProjects/manualagent/cultural_artifact_explorer/scripts/data/ocr/annotations.csv
-  char_list_path: /Users/paarthmiglani/PycharmProjects/manualagent/cultural_artifact_explorer/scripts/data/ocr/char_list.txt
   validation_split: 0.1
   batch_size: 32
   learning_rate: 0.001
