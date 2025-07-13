@@ -128,6 +128,7 @@ class OCRTrainer:
         else:
             self.optimizer = optim.RMSprop(self.model.parameters(), lr=lr)
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min', patience=3)
+
     def train_epoch(self, epoch_num):
         """Runs a single training epoch."""
         self.model.train()

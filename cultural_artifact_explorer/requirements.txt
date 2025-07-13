@@ -26,7 +26,6 @@ PyYAML
 editdistance
 albumentations
 
-
 # Development & Testing
 pytest
 flake8
