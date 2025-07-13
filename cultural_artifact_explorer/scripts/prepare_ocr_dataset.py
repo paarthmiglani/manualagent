@@ -128,14 +128,14 @@ def main():
 
     train_df = pd.DataFrame(train_data, columns=['filepath', 'text'])
     train_ann_path = os.path.join(output_dir, "train_annotations.csv")
-    train_df.to_csv(train_ann_path, index=False)
+    train_df.to_csv(train_ann_path, index=False, header=True)
     print(f"\nTraining annotations file created at: {train_ann_path} ({len(train_df)} entries)")
 
     val_ann_path = None
     if val_data:
         val_df = pd.DataFrame(val_data, columns=['filepath', 'text'])
         val_ann_path = os.path.join(output_dir, "val_annotations.csv")
-        val_df.to_csv(val_ann_path, index=False)
+        val_df.to_csv(val_ann_path, index=False, header=True)
         print(f"Validation annotations file created at: {val_ann_path} ({len(val_df)} entries)")
     sorted_chars = sorted(list(combined_chars))
     char_list_path = os.path.join(output_dir, "char_list.txt")
