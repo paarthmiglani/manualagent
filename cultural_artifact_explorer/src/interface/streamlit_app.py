@@ -81,6 +81,30 @@ query_handler = load_query_handler()
 
 # --- UI Layout ---
 st.set_page_config(page_title="Cultural Artifact Explorer", layout="wide")
+
+# --- Custom CSS for better UI ---
+st.markdown("""
+<style>
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: #F0F2F6;
+        border-radius: 4px 4px 0px 0px;
+        gap: 1px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #FFFFFF;
+    }
+    .stButton>button {
+        width: 100%;
+    }
+</style>""", unsafe_allow_html=True)
+
 st.title("🏛️ Cultural Artifact Explorer")
 st.markdown("Explore Indian cultural artifacts through custom AI models for OCR, NLP, and Multimodal Retrieval.")
 
@@ -89,29 +113,27 @@ tab1, tab2, tab3 = st.tabs(["🖼️ Process Artifact Image", "🔍 Text-to-Imag
 # --- Tab 1: Process Artifact Image ---
 with tab1:
     st.header("Process an Artifact Image")
-    uploaded_image_file = st.file_uploader("Upload an image of an artifact", type=["png", "jpg", "jpeg", "bmp"])
-
-    col1_ocr, col2_nlp, col3_retrieval = st.columns(3)
-    with col1_ocr:
-        perform_ocr = st.checkbox("Run OCR", value=True, key="proc_ocr")
-    with col2_nlp:
-        perform_nlp = st.checkbox("Run NLP (on OCR text)", value=True, key="proc_nlp")
-    with col3_retrieval:
-        perform_img_retrieval = st.checkbox("Find Related Texts (Image-to-Text)", value=False, key="proc_img_ret")
+    uploaded_image_file = st.file_uploader("Upload an image of an artifact", type=["png", "jpg", "jpeg", "bmp"], key="uploader_process")
 
     if uploaded_image_file is not None:
         st.image(uploaded_image_file, caption="Uploaded Artifact", width=300)
 
-        # Save uploaded file temporarily to pass its path (real implementation might handle bytes directly)
-        # temp_image_path = os.path.join("temp_uploads", uploaded_image_file.name)
-        # os.makedirs("temp_uploads", exist_ok=True)
-        # with open(temp_image_path, "wb") as f:
-        #     f.write(uploaded_image_file.getbuffer())
-        # For placeholder, we just use the name.
-        temp_image_path = uploaded_image_file.name
+        with st.form(key='processing_options'):
+            st.subheader("Processing Options")
+            col1_ocr, col2_nlp, col3_retrieval = st.columns(3)
+            with col1_ocr:
+                perform_ocr = st.checkbox("Run OCR", value=True, key="proc_ocr")
+            with col2_nlp:
+                perform_nlp = st.checkbox("Run NLP (on OCR text)", value=True, key="proc_nlp")
+            with col3_retrieval:
+                perform_img_retrieval = st.checkbox("Find Related Texts (Image-to-Text)", value=False, key="proc_img_ret")
 
+            submitted = st.form_submit_button("Process Image")
 
-        if st.button("Process Image", key="btn_process"):
+        if submitted:
+            # For placeholder, we just use the name.
+            temp_image_path = uploaded_image_file.name
+
             with st.spinner("Processing artifact... This may take a moment."):
                 results = processor.process_artifact_image(
                     temp_image_path, # In real app, pass image data or saved path
@@ -144,39 +166,34 @@ with tab1:
                         st.caption(f"  Content: {item['text_info'].get('content', '')[:200]}...")
                         st.divider()
 
-            # Clean up temp file (optional)
-            # if os.path.exists(temp_image_path): os.remove(temp_image_path)
-
 # --- Tab 2: Text-to-Image Search ---
 with tab2:
     st.header("Search Artifacts by Text Description")
-    text_query = st.text_input("Enter a text query (e.g., 'bronze dancing Shiva statue', 'Gupta period coins')")
-    top_k_text_search = st.slider("Number of images to retrieve", 1, 10, 3, key="slider_txt2img")
+    with st.form(key='text_search_form'):
+        text_query = st.text_input("Enter a text query (e.g., 'bronze dancing Shiva statue', 'Gupta period coins')")
+        top_k_text_search = st.slider("Number of images to retrieve", 1, 10, 3, key="slider_txt2img")
+        search_submitted = st.form_submit_button("Search by Text")
 
-    if st.button("Search by Text", key="btn_txt2img"):
-        if text_query:
-            with st.spinner("Searching for images..."):
-                retrieved_images = query_handler.query_by_text(text_query, top_k=top_k_text_search)
+    if search_submitted and text_query:
+        with st.spinner("Searching for images..."):
+            retrieved_images = query_handler.query_by_text(text_query, top_k=top_k_text_search)
 
-            st.subheader(f"Found {len(retrieved_images)} images for '{text_query}':")
-            if retrieved_images:
-                # Display images in columns
-                # Max 3 columns for placeholder, adjust as needed
-                num_cols = min(len(retrieved_images), 3)
-                cols = st.columns(num_cols)
-                for i, item in enumerate(retrieved_images):
-                    with cols[i % num_cols]:
-                        st.markdown(f"**ID:** {item['image_info'].get('id', 'N/A')} (Score: {item.get('score',0):.2f})")
-                        # In a real app, item['image_info']['path'] would be used to load image:
-                        # st.image(item['image_info']['path'], caption=item['image_info'].get('caption', 'Retrieved Artifact'))
-                        st.image(f"https://via.placeholder.com/200x200.png?text=Image+{item['image_info']['id']}",
-                                 caption=item['image_info'].get('caption', f"Placeholder for {item['image_info']['id']}"))
-                        st.caption(f"Path (dummy): {item['image_info'].get('path', 'N/A')}")
-                        st.divider()
-            else:
-                st.write("No images found matching your query.")
+        st.subheader(f"Found {len(retrieved_images)} images for '{text_query}':")
+        if retrieved_images:
+            # Display images in columns
+            num_cols = min(len(retrieved_images), 3)
+            cols = st.columns(num_cols)
+            for i, item in enumerate(retrieved_images):
+                with cols[i % num_cols]:
+                    st.markdown(f"**ID:** {item['image_info'].get('id', 'N/A')} (Score: {item.get('score',0):.2f})")
+                    st.image(f"https://via.placeholder.com/200x200.png?text=Image+{item['image_info']['id']}",
+                             caption=item['image_info'].get('caption', f"Placeholder for {item['image_info']['id']}"))
+                    st.caption(f"Path (dummy): {item['image_info'].get('path', 'N/A')}")
+                    st.divider()
         else:
-            st.warning("Please enter a text query.")
+            st.write("No images found matching your query.")
+    elif search_submitted and not text_query:
+        st.warning("Please enter a text query.")
 
 # --- Tab 3: Image-to-Text/Image Search ---
 with tab3:
@@ -184,23 +201,21 @@ with tab3:
     st.markdown("Upload an image to find related texts or similar images from the database.")
     query_image_file = st.file_uploader("Upload a query image", type=["png", "jpg", "jpeg", "bmp"], key="uploader_img_query")
 
-    search_type_img_query = st.radio(
-        "What to search for?",
-        ("Related Texts (Image-to-Text)", "Similar Images (Image-to-Image) - Placeholder"),
-        key="radio_img_query_type"
-    )
-    top_k_img_search = st.slider("Number of items to retrieve", 1, 10, 3, key="slider_img_query")
-
     if query_image_file is not None:
         st.image(query_image_file, caption="Query Image", width=200)
 
-        # temp_query_image_path = os.path.join("temp_uploads", f"query_{query_image_file.name}")
-        # os.makedirs("temp_uploads", exist_ok=True)
-        # with open(temp_query_image_path, "wb") as f:
-        #     f.write(query_image_file.getbuffer())
-        temp_query_image_path = query_image_file.name # Placeholder path
+        with st.form(key='image_search_form'):
+            search_type_img_query = st.radio(
+                "What to search for?",
+                ("Related Texts (Image-to-Text)", "Similar Images (Image-to-Image) - Placeholder"),
+                key="radio_img_query_type"
+            )
+            top_k_img_search = st.slider("Number of items to retrieve", 1, 10, 3, key="slider_img_query")
+            image_search_submitted = st.form_submit_button("Search by Image")
 
-        if st.button("Search by Image", key="btn_img_query"):
+        if image_search_submitted:
+            temp_query_image_path = query_image_file.name # Placeholder path
+
             with st.spinner("Searching with image..."):
                 if "Related Texts" in search_type_img_query:
                     retrieved_items = query_handler.query_by_image(temp_query_image_path, top_k=top_k_img_search)
@@ -214,8 +229,6 @@ with tab3:
                         st.write("No related texts found for this image.")
 
                 elif "Similar Images" in search_type_img_query:
-                    # This would be a different call to query_handler, e.g., query_handler.retrieve_similar_images(...)
-                    # For placeholder, let's reuse text-to-image logic for display structure
                     st.warning("Image-to-Image search is a placeholder. Displaying dummy image results.")
                     retrieved_items = query_handler.query_by_text("dummy_query_for_similar_images", top_k=top_k_img_search) # Reusing
                     st.subheader(f"Found {len(retrieved_items)} similar images (Placeholder):")
@@ -231,12 +244,9 @@ with tab3:
                     else:
                         st.write("No similar images found (placeholder).")
 
-            # if os.path.exists(temp_query_image_path): os.remove(temp_query_image_path)
-
 # --- Footer ---
 st.markdown("---")
-st.caption("Cultural Artifact Explorer v0.1.0 (Placeholder Interface)")
-
+st.caption("Cultural Artifact Explorer v0.2.0 (UI Improved)")
 
 def main_cli():
     """
