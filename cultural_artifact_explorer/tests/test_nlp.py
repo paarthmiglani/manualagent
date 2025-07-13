@@ -98,6 +98,52 @@ class TestNER(unittest.TestCase):
         self.assertTrue(True, "Dummy NER test passed.")
 
 
+import os
+import json
+import csv
+import tempfile
+import shutil
+
+# Now, import the new search functions
+from cultural_artifact_explorer.src.utils.search import find_translation_files, read_translation_data
+
+class TestSearch(unittest.TestCase):
+    def setUp(self):
+        """Create a temporary directory with dummy files for testing."""
+        self.test_dir = tempfile.mkdtemp()
+        # Create a dummy json file
+        self.json_path = os.path.join(self.test_dir, 'test.json')
+        with open(self.json_path, 'w') as f:
+            json.dump([{'source_text': 'hello', 'target_text': 'hola'}], f)
+        # Create a dummy csv file
+        self.csv_path = os.path.join(self.test_dir, 'test.csv')
+        with open(self.csv_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['source_text', 'target_text'])
+            writer.writerow(['world', 'mundo'])
+        # Create a non-translation file
+        self.non_translation_path = os.path.join(self.test_dir, 'other.txt')
+        with open(self.non_translation_path, 'w') as f:
+            f.write('this is not a translation file')
+
+    def tearDown(self):
+        """Remove the temporary directory."""
+        shutil.rmtree(self.test_dir)
+
+    def test_find_translation_files(self):
+        """Test that translation files are found correctly."""
+        found_files = find_translation_files(self.test_dir)
+        self.assertIn(self.json_path, found_files)
+        self.assertIn(self.csv_path, found_files)
+        self.assertNotIn(self.non_translation_path, found_files)
+
+    def test_read_translation_data(self):
+        """Test that translation data is read correctly from json and csv."""
+        json_data = read_translation_data(self.json_path)
+        self.assertEqual(json_data, [{'source_text': 'hello', 'target_text': 'hola'}])
+        csv_data = read_translation_data(self.csv_path)
+        self.assertEqual(csv_data, [{'source_text': 'world', 'target_text': 'mundo'}])
+
 if __name__ == '__main__':
     print("Running NLP module tests (placeholders)...")
     unittest.main(verbosity=2)
