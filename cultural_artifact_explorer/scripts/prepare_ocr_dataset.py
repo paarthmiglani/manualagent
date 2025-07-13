@@ -11,17 +11,22 @@ from tqdm import tqdm
 def find_corresponding_gt_file(image_filename, directory):
     """
     Finds the ground truth .txt file for a given image filename.
-    Handles variations like 'img_123.jpg' -> 'gt_img_123.txt'.
+    Handles variations like 'img_123.jpg' -> 'gt_123.txt' or 'img_123.jpg' -> '123.txt'.
     """
     base_name = os.path.splitext(image_filename)[0]
-    if base_name.startswith('img_'):
-        gt_base_name = 'gt_' + base_name
-    else:
-        gt_base_name = 'gt_' + base_name
+    # Try direct mapping: img_123.jpg -> gt_123.txt
+    gt_base_name = base_name.replace('img_', 'gt_')
     gt_filename = gt_base_name + ".txt"
     gt_path = os.path.join(directory, gt_filename)
-    return gt_path if os.path.exists(gt_path) else None
-
+    if os.path.exists(gt_path):
+        return gt_path
+    # Try alternative mapping: img_123.jpg -> 123.txt
+    gt_base_name = base_name.replace('img_', '')
+    gt_filename = gt_base_name + ".txt"
+    gt_path = os.path.join(directory, gt_filename)
+    if os.path.exists(gt_path):
+        return gt_path
+    return None
 def process_directories(data_directories):
     """
     Scans a list of directories to extract image-text pairs and all unique characters.

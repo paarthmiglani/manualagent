@@ -13,6 +13,6 @@ VERSION = "0.1.0"
 
 print(f"OCR module (version {VERSION}) initialized.")
 
-# It's good practice to define what gets imported when `from ocr import *` is used,
+# It's good practice to define what gets imported when `from .ocr import *` is used,
 # though explicit imports are generally preferred.
 # __all__ = ['OCRInferencer', 'OCRTrainer', 'preprocess_image_for_ocr']
