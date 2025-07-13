@@ -1,7 +1,7 @@
 # scripts/prepare_ocr_dataset.py
+
 # Script to automate the preparation of OCR dataset files for training and validation,
 # now with support for multiple data directories to create a unified multilingual dataset.
-
 import os
 import argparse
 import pandas as pd
@@ -21,7 +21,6 @@ def find_corresponding_gt_file(image_filename, directory):
     gt_filename = gt_base_name + ".txt"
     gt_path = os.path.join(directory, gt_filename)
     return gt_path if os.path.exists(gt_path) else None
-
 def process_directories(data_directories):
     """
     Scans a list of directories to extract image-text pairs and all unique characters.
@@ -74,6 +73,7 @@ def update_ocr_config(config_path, train_ann_path, val_ann_path, char_list_path)
     if 'model' not in config_data: config_data['model'] = {}
     if 'training' not in config_data: config_data['training'] = {}
 
+
     # Remove old dataset_path keys and set new annotation file paths
     config_data['training'].pop('dataset_path', None)
     config_data['training'].pop('validation_dataset_path', None)
@@ -108,7 +108,6 @@ def main():
     if not train_data:
         print("Preparation failed: No training data could be processed.")
         return
-
     # Process validation directories if provided
     val_data, val_chars = [], set()
     if args.val_dirs:
@@ -130,14 +129,13 @@ def main():
         val_ann_path = os.path.join(output_dir, "val_annotations.csv")
         val_df.to_csv(val_ann_path, index=False)
         print(f"Validation annotations file created at: {val_ann_path} ({len(val_df)} entries)")
-
     sorted_chars = sorted(list(combined_chars))
     char_list_path = os.path.join(output_dir, "char_list.txt")
     with open(char_list_path, 'w', encoding='utf-8') as f:
         for char in sorted_chars:
             f.write(char + '\n')
-    print(f"Unified character list created with {len(sorted_chars)} unique characters at: {char_list_path}")
 
+    print(f"Unified character list created with {len(sorted_chars)} unique characters at: {char_list_path}")
     update_ocr_config(
         config_path=args.config_path,
         train_ann_path=train_ann_path,

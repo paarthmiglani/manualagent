@@ -43,7 +43,6 @@ class OCRDataset(Dataset):
         except Exception as e:
             print(f"Error loading or parsing annotation file {annotations_file}: {e}")
             self.annotations = pd.DataFrame(columns=['filepath', 'text']) # Empty dataframe
-
         # Load character list and create mapping
         self.char_list = load_char_list(char_list_path)
         # Create char -> int and int -> char mappings
@@ -70,7 +69,6 @@ class OCRDataset(Dataset):
         record = self.annotations.iloc[idx]
         image_path = record['filepath'] # Use the absolute path from the CSV
         text_label = record['text']
-
         # Preprocess the image
         try:
             # Note: preprocess_image_for_ocr from utils returns (C, H, W)
