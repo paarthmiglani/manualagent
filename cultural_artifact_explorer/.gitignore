@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pyvenv.cfg
+pip-selfcheck.json
+*.egg-info/
+dist/
+build/
+activate
+*.ps1
+
+# IDE specific
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Data and Models (if large and not meant for git)
+*.pth
+*.pt
+*.onnx
+*.pb
+*.h5
+*.model
+*.pkl
+*.joblib
+# data/ # Keep commented unless specific data dirs are confirmed large
+# models/ # Keep commented unless specific model dirs are confirmed large
+sample_ocr_image.png
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# IPython/Jupyter Notebook
+.ipynb_checkpoints
+
+# python-dotenv
+.env
+
+# Test outputs
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
