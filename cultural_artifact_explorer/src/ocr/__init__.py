@@ -4,7 +4,7 @@
 # It can be used to expose the main functionalities of the OCR module.
 
 # Example imports (actual classes/functions will be defined in other files):
-# from .infer import OCRInferencer
+# from . import infer
 # from .train import OCRTrainer
 # from .utils import preprocess_image_for_ocr, visualize_ocr_results
 # from .postprocess import aggregate_ocr_outputs

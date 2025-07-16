@@ -2,18 +2,8 @@
 # Orchestrates the full OCR -> NLP -> Retrieval pipeline for an artifact (image + text)
 
 import yaml
-# Assuming other modules are structured as per the plan:
-# from src.ocr.infer import OCRInferencer # Or a unified OCR interface
-# from src.nlp.translation import TextTranslator
-# from src.nlp.summarization import TextSummarizer
-# from src.nlp.ner import NERTagger
-# from src.retrieval.embed_image import ImageEmbedder # For getting query embedding if needed by retrieval directly
-# from src.retrieval.embed_text import TextEmbedder
-# from src.retrieval.index_search import VectorIndexManager # If this class also handles search
-
-# For a simpler pipeline, we might use a higher-level retriever class
-# from src.retrieval.retriever import MultimodalRetriever # This class would internally use embedders and index_search
-
+from ocr.ocr_engine import get_ocr_engine
+from ..nlp_engine import get_nlp_engine
 
 class ArtifactProcessor:
     def __init__(self, ocr_config_path, nlp_config_path, retrieval_config_path):
@@ -24,45 +14,18 @@ class ArtifactProcessor:
             nlp_config_path (str): Path to NLP configuration.
             retrieval_config_path (str): Path to Retrieval configuration.
         """
-        print("Initializing ArtifactProcessor (placeholder)...")
+        print("Initializing ArtifactProcessor...")
 
-        # --- Load Configurations ---
-        # with open(ocr_config_path, 'r') as f: self.ocr_config = yaml.safe_load(f)
-        # with open(nlp_config_path, 'r') as f: self.nlp_config = yaml.safe_load(f)
-        # with open(retrieval_config_path, 'r') as f: self.retrieval_config = yaml.safe_load(f)
         self.ocr_config_path = ocr_config_path
         self.nlp_config_path = nlp_config_path
         self.retrieval_config_path = retrieval_config_path
         print("  Configurations paths loaded.")
 
-        # --- Initialize Components (Placeholders) ---
-        # These would be instances of your actual component classes.
-        # self.ocr_inferencer = OCRInferencer(config_path=ocr_config_path)
-        # self.translator = TextTranslator(config_path=nlp_config_path) # May need specific model_key for default
-        # self.summarizer = TextSummarizer(config_path=nlp_config_path)
-        # self.ner_tagger = NERTagger(config_path=nlp_config_path)
-
-        # For retrieval, initialize embedders and index manager, or a unified retriever
-        # self.image_embedder = ImageEmbedder(config_path=retrieval_config_path)
-        # self.text_embedder = TextEmbedder(config_path=retrieval_config_path)
-        # self.vector_index_manager = VectorIndexManager(config_path=retrieval_config_path)
-        # # Load necessary indexes (e.g., image index for text-to-image, text index for image-to-text)
-        # self.vector_index_manager.load_index(self.retrieval_config.get('vector_indexer', {}).get('image_index_name', 'image_embeddings'))
-        # self.vector_index_manager.load_index(self.retrieval_config.get('vector_indexer', {}).get('text_index_name', 'text_embeddings'))
-
-        # OR, if using a MultimodalRetriever that encapsulates these:
-        # embed_gen = EmbeddingGenerator(...) # This would be from retrieval config
-        # img_idx = VectorIndex(...)
-        # txt_idx = VectorIndex(...)
-        # self.retriever = MultimodalRetriever(embed_gen, img_idx, txt_idx)
-
-        self.ocr_inferencer = "dummy_ocr_inferencer_object"
-        self.translator = "dummy_translator_object"
-        self.summarizer = "dummy_summarizer_object"
-        self.ner_tagger = "dummy_ner_tagger_object"
+        self.ocr_engine = get_ocr_engine(self.ocr_config_path)
+        self.nlp_engine = get_nlp_engine(self.nlp_config_path)
         self.retriever = "dummy_multimodal_retriever_object" # Placeholder for the search component
 
-        print("  All pipeline components initialized (placeholders).")
+        print("  All pipeline components initialized.")
 
     def process_artifact_image(self, image_path, perform_ocr=True, perform_nlp=True, perform_retrieval=False, target_translation_lang='en'):
         """
@@ -76,66 +39,43 @@ class ArtifactProcessor:
         Returns:
             dict: A dictionary containing all processing results.
         """
-        print(f"\nProcessing artifact image: {image_path} (placeholder)...")
+        print(f"\nProcessing artifact image: {image_path}...")
         results = {'image_path': image_path, 'steps_performed': []}
 
         # 1. OCR (if enabled)
         ocr_text_aggregated = None
         if perform_ocr:
-            print("  Step 1: Performing OCR (placeholder)...")
-            # recognized_texts_regions = self.ocr_inferencer.predict(image_path) # Or batch_predict if it returns structured output
-            # This should ideally return structured data: list of {'text': '...', 'bbox': ..., 'confidence': ...}
-            # For placeholder, let's assume it returns a list of text segments
-            # dummy_ocr_output_regions = [
-            #     {'text': "First line of ancient script.", 'bbox': [10,10,100,30]},
-            #     {'text': "द्वितीय पंक्ति संस्कृत में।", 'bbox': [10,40,150,60]} # "Second line in Sanskrit."
-            # ]
-            # ocr_text_aggregated = self.ocr_inferencer.postprocess_and_aggregate(dummy_ocr_output_regions) # Assume this method exists
-            ocr_text_aggregated = "First line of ancient script. द्वितीय पंक्ति संस्कृत में।" # Dummy aggregated text
+            print("  Step 1: Performing OCR...")
+            ocr_text_aggregated, _ = self.ocr_engine.get_text(image_path)
             results['ocr'] = {
                 'raw_text': ocr_text_aggregated,
-                # 'regions': dummy_ocr_output_regions # Optional: include region details
             }
             results['steps_performed'].append('ocr')
-            print(f"    OCR Result (dummy): '{ocr_text_aggregated[:100]}...'")
+            print(f"    OCR Result: '{ocr_text_aggregated[:100]}...'")
 
         # 2. NLP (if enabled and OCR text available)
         if perform_nlp and ocr_text_aggregated:
-            print("  Step 2: Performing NLP tasks (placeholder)...")
+            print("  Step 2: Performing NLP tasks...")
             nlp_results = {}
 
-            # Translation (example: translate everything to English)
-            # This needs language detection or assuming a primary script from OCR
-            # For simplicity, assume OCR might give mixed scripts, or we attempt translation based on detected script parts.
-            # A more robust pipeline would handle multilingual text from OCR better.
-            # For now, translate the whole aggregated block.
-            # translated_text = self.translator.translate(ocr_text_aggregated, source_lang='auto', target_lang=target_translation_lang)
-            translated_text = f"Translated ({target_translation_lang}): {ocr_text_aggregated}" # Dummy
+            translated_text = self.nlp_engine.get_translation(ocr_text_aggregated, model_key=f"en_{target_translation_lang}")
             nlp_results['translation_to_english'] = translated_text
-            print(f"    Translation (dummy): '{translated_text[:100]}...'")
+            print(f"    Translation: '{translated_text[:100]}...'")
 
-            # Summarization (e.g., of the English translation)
-            # summary = self.summarizer.summarize(translated_text)
-            summary = f"Summary: Key points of '{translated_text[:30]}...'" # Dummy
+            summary = self.nlp_engine.get_summary(translated_text)
             nlp_results['summary'] = summary
-            print(f"    Summary (dummy): '{summary[:100]}...'")
+            print(f"    Summary: '{summary[:100]}...'")
 
-            # NER (e.g., on the English translation or original if NER supports multilingual)
-            # entities = self.ner_tagger.extract_entities(translated_text) # Or ocr_text_aggregated
-            entities = [{'text': 'ancient script', 'label': 'ARTIFACT', 'start_char': 14, 'end_char': 28, 'score': 0.8}] # Dummy
+            entities = self.nlp_engine.get_ner(translated_text)
             nlp_results['named_entities'] = entities
-            print(f"    NER (dummy): Found {len(entities)} entities. Example: {entities[0] if entities else 'None'}")
+            print(f"    NER: Found {len(entities)} entities. Example: {entities[0] if entities else 'None'}")
 
             results['nlp'] = nlp_results
             results['steps_performed'].append('nlp')
 
         # 3. Retrieval (Image-to-Text, if enabled)
-        # This means finding texts in the database that are similar to the input image.
         if perform_retrieval:
             print("  Step 3: Performing Image-to-Text Retrieval (placeholder)...")
-            # This uses the input image to query a pre-built TEXT index.
-            # The MultimodalRetriever class would handle this.
-            # retrieved_texts_info = self.retriever.retrieve_texts_for_image(image_path, top_k=5)
             retrieved_texts_info = [
                 {'text_info': {'id': 'txt_001', 'content': 'A description of a similar artifact...'}, 'score': 0.92},
                 {'text_info': {'id': 'txt_005', 'content': 'Another related text entry...'}, 'score': 0.88}
