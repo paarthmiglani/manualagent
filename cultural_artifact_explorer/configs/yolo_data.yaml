@@ -1,0 +1,3 @@
+train: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/images
+val: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/images
+names: [text]

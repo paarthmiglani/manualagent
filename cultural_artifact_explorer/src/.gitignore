@@ -1,5 +1,7 @@
 # Python
 __pycache__/
+**/__pycache__/
+**/*.pyc
 *.pyc
 *.pyo
 *.pyd
@@ -65,3 +67,14 @@ coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
+# Ignore all jpg, gif, png images
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Ignore all files that start with "img" and end with ".txt"
+img*.txt
+*.zip
+
+

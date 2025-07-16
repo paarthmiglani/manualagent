@@ -1,0 +1,51 @@
+model:
+  name: CustomIndicOCR_CRNN_BiLSTM
+  type: CRNN
+  weights_path: null
+  char_list_path: /Users/paarthmiglani/PycharmProjects/manualagent/cultural_artifact_explorer/scripts/data/ocr/char_list.txt
+  image_root: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/boundingbox/crops
+  input_height: 32
+  input_channels: 1
+  rnn_hidden_size: 256
+  num_rnn_layers: 2
+
+preprocessing:
+  image_height: 32
+  grayscale: true
+  binarization_threshold: null
+  invert_colors: false
+
+postprocessing:
+  beam_search: true
+  beam_width: 5
+  confidence_threshold: 0.5
+
+training:
+  dataset_path: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/boundingbox/train_crops
+  annotations_file: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/boundingbox/train_recog_labels.csv
+  # If you have validation crops/labels, fill these in below!
+  validation_dataset_path: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/boundingbox/val_crops
+  validation_annotations_file: /Users/paarthmiglani/PycharmProjects/manualagent/data/ocr/boundingbox/val_recog_labels.csv--- optional
+  validation_split: 0.1      # You can set to 0.0 if you have explicit val set
+  batch_size: 16
+  learning_rate: 0.01
+  epochs: 100
+  optimizer: Adam
+  augmentation:
+    enable: true
+    rotate_max_angle: 5
+    scale_max_factor: 0.1
+    noise_level: 0.05
+  output_dir: models/ocr_bbox/
+  log_interval: 100
+
+inference:
+  device: mps
+  text_detection:
+    enable: true
+    detection_model_path: null
+    detection_threshold: 0.7
+    box_threshold: 0.4
+    link_threshold: 0.4
+    low_text_threshold: 0.4
+    word_segmentation: true

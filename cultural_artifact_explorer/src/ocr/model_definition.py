@@ -146,6 +146,18 @@ class CRNN(nn.Module):
 if __name__ == '__main__':
     print("--- Testing CRNN Model Definition ---")
 
+    # Automatic device selection (MPS for Apple Silicon, CUDA, else CPU)
+    import torch
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("Using Apple Silicon MPS device.")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("Using CUDA device.")
+    else:
+        device = torch.device("cpu")
+        print("Using CPU.")
+
     # --- Model Parameters (Example) ---
     IMG_CHANNELS = 1 # Grayscale
     NUM_CLASSES = 80 # Example: 79 characters + 1 blank token
@@ -158,7 +170,7 @@ if __name__ == '__main__':
         num_classes=NUM_CLASSES,
         rnn_hidden_size=RNN_HIDDEN,
         rnn_num_layers=RNN_LAYERS
-    )
+    ).to(device)
     print("CRNN model instance created successfully.")
     print(model)
 
@@ -169,7 +181,7 @@ if __name__ == '__main__':
     IMG_WIDTH = 150 # Example width
 
     # Create a dummy input tensor
-    dummy_input = torch.randn(BATCH_SIZE, IMG_CHANNELS, IMG_HEIGHT, IMG_WIDTH)
+    dummy_input = torch.randn(BATCH_SIZE, IMG_CHANNELS, IMG_HEIGHT, IMG_WIDTH, device=device)
     print(f"Dummy input tensor shape: {dummy_input.shape}")
 
     try:
@@ -177,25 +189,12 @@ if __name__ == '__main__':
         output_log_probs = model(dummy_input)
         print(f"Model output (log_probs) shape: {output_log_probs.shape}")
 
-        # --- Check Output Shape ---
-        # Expected output shape: (SeqLen, Batch, NumClasses)
-        # SeqLen depends on the CNN architecture and input width.
-        # Let's calculate the expected width after the CNN:
-        # W_in = 150
-        # W_pool1 = 150 / 2 = 75
-        # W_pool2 = 75 / 2 = 37.5 -> 37 (floor)
-        # W_pool3 = 37 + 1 = 38
-        # W_pool4 = 38 + 1 = 39
-        # W_pool5 = 39 + 1 = 40
-        # So, expected SeqLen is ~40 for W_in=150
-
-        # Let's run a dummy tensor through just the CNN to confirm SeqLen
+        # Check output shape
         cnn_output = model.cnn_backbone_corrected(dummy_input)
         expected_seq_len = cnn_output.size(3)
         print(f"CNN output feature map shape: {cnn_output.shape}")
         print(f"Inferred sequence length for RNN: {expected_seq_len}")
 
-        # Assert final output shape
         expected_shape = (expected_seq_len, BATCH_SIZE, NUM_CLASSES)
         if output_log_probs.shape == expected_shape:
             print(f"Forward pass test PASSED. Output shape {output_log_probs.shape} matches expected {expected_shape}.")
