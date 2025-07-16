@@ -1,0 +1,12 @@
+numpy
+opencv-python-headless
+scikit-learn
+streamlit
+PyYAML
+
+[dev]
+pytest
+flake8
+black
+isort
+mypy
