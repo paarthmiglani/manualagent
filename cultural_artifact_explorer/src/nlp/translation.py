@@ -2,7 +2,10 @@
 # Implements the TextTranslator class for inference using the Transformer model.
 
 import yaml
-import torch
+try:
+    import torch
+except ModuleNotFoundError:  # pragma: no cover - torch is optional for tests
+    torch = None
 import os
 import json
 
@@ -43,6 +46,9 @@ class TextTranslator:
         self.src_vocab = None
         self.tgt_vocab = None
         self.device = None
+
+        if torch is None:
+            raise ImportError("torch is required for TextTranslator")
 
         self._setup_device()
         self._load_vocab()
